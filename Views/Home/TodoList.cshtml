@@ -1,0 +1,89 @@
+@model IEnumerable<TodoItem>
+@using dotnet_html_sortable_table.Controllers;
+
+<style>
+/*.fade-me-out.htmx-swapping {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+  */
+
+  .fade-in {
+      animation: fadeIn 1s ease-in-out;
+  }
+
+  .fade-out {
+      animation: fadeOut 1s ease-in-out;
+  }
+
+  @@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+</style>
+
+<div class="text-center">
+  <form action="AddTodoItem" method="post">
+    <input type="text" name="ItemName" id="ItemName" value="">
+    <button type="submit" hx-post="/AddTodoItem">Submit</button>
+  </form>
+</div>
+
+<hr>
+
+<div class="d-flex justify-content-center">
+  <table class="table w-auto">
+    <thead>
+      <tr>
+        <th class="">Id</th>
+        <th>Item</th>
+        <th></th>
+      </tr>
+    </thead>
+
+    <tbody id="todo-body">
+      @foreach (var item in Model) {
+        <tr id="table-row-@(item.Id)">
+          <td>@item.Id</td>
+          <td>@item.Name</td>
+          <td>
+            <button 
+              hx-swap="outerHTML swap:1s"
+              hx-target="closest tr"
+              hx-delete="/DeleteTodoItem/@(item.Id)">
+              Delete
+            </button>
+          </td>
+        </tr>
+      }
+    </tbody>
+
+  </table>
+</div>
+
+<script>
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'todo-body') {
+            let newItem = evt.detail.target.querySelector('tr:last-child');
+            if (newItem) {
+                newItem.classList.add('fade-in');
+            }
+        }
+    });
+
+    document.addEventListener('htmx:beforeSwap', function(evt) {
+        if (evt.detail.target.tagName === 'TR' && evt.detail.xhr.status === 204) {
+            evt.detail.target.classList.add('fade-out');
+            evt.detail.shouldSwap = false;
+            setTimeout(() => {
+                evt.detail.target.remove();
+            }, 1000);
+        }
+    });
+</script>
+

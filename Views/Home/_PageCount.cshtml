@@ -1,0 +1,45 @@
+@{
+  int size = (int) TempData["size"];
+  int count = (int) TempData["count"];
+  int backwardoffset = (int) TempData["backwardoffset"];
+  int forwardoffset = (int) TempData["forwardoffset"];
+}
+
+<style type="text/css" media="all">
+  .buttons {
+    display: flex;
+    justify-content: center;
+  }
+
+  .button-text {
+    font-size: 24px;
+    margin: 5px;
+  }
+</style>
+
+<div class="buttons" id="button-group">
+  <button 
+    class="button-text btn btn-primary" 
+    hx-get="/PaginationTable?size=@size&offset=@backwardoffset"
+    hx-target="#tablecontent"
+    hx-push-url="true">
+    Prev Page
+  </button>
+  <button 
+    class="button-text btn btn-primary" 
+    hx-get="/PaginationTable?size=@size&offset=@forwardoffset"
+    hx-target="#tablecontent"
+    hx-push-url="true">
+    Next Page
+  </button>
+</div>
+
+<br/>
+
+<div>
+  <p>And lastly, we have a demo of how we can do pagination in a table. This works much like the sortable list where we press something on the page and the table contents are replaced. This is a pretty simple example. The count displays how many elements are on the page like the other pages in the demo. When you press the navigation buttons for the table, the entire div containing the buttons and the count are replaced via event in the same way the count was replaced on the incremental search page; The table content is directly replaced from the call.</p>
+</div>
+
+<div id="count">
+  <h3>Count: <span style="color: red">@count</span></h3>
+</div>

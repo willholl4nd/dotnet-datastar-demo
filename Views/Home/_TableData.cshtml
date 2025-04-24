@@ -1,0 +1,18 @@
+@model IEnumerable<DemoTable>
+@using dotnet_html_sortable_table.Models;
+
+
+@foreach (var item in Model) 
+{
+<tr>
+  <td>
+    @Html.DisplayFor(modelitem => item.Id)
+  </td>
+  <td>
+    @Html.DisplayFor(modelitem => item.RandInt)
+  </td>
+  <td>
+    @Html.DisplayFor(modelitem => item.Name)
+  </td>
+</tr>
+}

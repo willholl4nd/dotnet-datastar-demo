@@ -1,0 +1,80 @@
+@model IEnumerable<DemoTable>
+@using dotnet_html_sortable_table.Models;
+
+@{
+ int offset = (int)ViewData["offset"]; 
+ int size = (int)ViewData["size"]; 
+
+ bool splitOption = (bool)ViewData["split"];
+
+ IEnumerable<DemoTable> first = new List<DemoTable>(), second = new List<DemoTable>();
+ if (splitOption) {
+   bool divBy2 = size % 2 == 0;
+
+   if (divBy2) {
+      first = Model.Take(size/2);
+      second = Model.TakeLast(size - size/2).AsEnumerable();
+   } else {
+      first = Model.Take((size-1) / 2);
+      second = Model.TakeLast(size - (size-1) / 2).AsEnumerable();
+   }
+ }
+}
+
+
+@if (splitOption) {
+  @foreach (var item in first) 
+  {
+  <tr>
+    <td>
+      @Html.DisplayFor(modelitem => item.Id)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.RandInt)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.Name)
+    </td>
+  </tr>
+  }
+} else {
+  @foreach (var item in Model) 
+  {
+  <tr>
+    <td>
+      @Html.DisplayFor(modelitem => item.Id)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.RandInt)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.Name)
+    </td>
+  </tr>
+  }
+}
+
+<tr
+  hx-target="#tablecontent"
+  hx-trigger="revealed"
+  hx-get="/scroll/1?offset=@offset&size=@size&split=@splitOption"
+  hx-swap="beforeend"
+  >
+</tr>
+
+@if (splitOption) {
+  @foreach (var item in second) 
+  {
+  <tr>
+    <td>
+      @Html.DisplayFor(modelitem => item.Id)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.RandInt)
+    </td>
+    <td>
+      @Html.DisplayFor(modelitem => item.Name)
+    </td>
+  </tr>
+  }
+}

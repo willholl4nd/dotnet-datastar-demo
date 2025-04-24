@@ -1,4 +1,4 @@
-namespace dotnet_datastar_demo.Models;
+namespace dotnet_html_sortable_table.Models;
 
 public class ErrorViewModel
 {

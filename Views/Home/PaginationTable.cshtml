@@ -1,0 +1,39 @@
+@model IEnumerable<DemoTable>
+@using dotnet_html_sortable_table.Models;
+
+@{
+  int size = (int)TempData["size"];
+  int backwardoffset = (int)TempData["backwardoffset"];
+  int forwardoffset = (int)TempData["forwardoffset"];
+
+  var firstElement = Model.Take(1).ToList()[0];
+}
+
+<div class="change" hx-trigger="updateCount from:body" hx-get="/PaginationCount">
+  @await Html.PartialAsync("_PageCount")
+</div>
+
+<hr>
+<br>
+
+<table class="table"
+  <thead>
+    <tr class="headers">
+      <th>
+        @Html.DisplayNameFor(model => firstElement.Id)
+      </th>
+      <th>
+        @Html.DisplayNameFor(model => firstElement.RandInt)
+      </th>
+      <th>
+        @Html.DisplayNameFor(model => firstElement.Name)
+      </th>
+    </tr>
+  </thead>
+
+  <tbody id="tablecontent"> 
+    @await Html.PartialAsync("_PageTable", Model)
+  </tbody>
+
+</table>
+ 

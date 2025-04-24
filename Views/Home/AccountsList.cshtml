@@ -1,0 +1,171 @@
+@using dotnet_html_sortable_table.Models
+@model IEnumerable<Accounts>
+
+@{
+  Layout = "_Layout";
+  ViewData["Title"] = "Accounts Search";
+
+  int size = (int) ViewData["size"];
+  int count = (int) TempData["count"];
+}
+
+<style type="text/css" media="all">
+  .input-container {
+    display: flex;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .input-container > * {
+    margin: 5px;
+  }
+</style>
+
+<body>
+  <div class="input-container">
+    <label>Search First Names: </label>
+    <input type="text" name="search"
+    hx-post="/AccountsListFilter?size=@size"
+    hx-trigger="keyup delay:100ms changed"
+    hx-target="#tablecontent"
+    hx-swap="outerHTML"
+    placeholder="Search..." />
+  </div>
+  <div>
+    <p>Next up is incremental searching in a table of records. Here we have the ability to, in real time, filter results that fit what we are searching, all within an MPA. This is a demonstration of triggers again. Here we are triggering on keyup, where checks occur every 100ms. If triggered, we make a request to filter the table further, but none of that filtering is taking place in the client; it is all server-side. 
+    </p>
+    <p>Included in this demo is this count value in red. As we type and filter down, this element is also changing, but this actually occurs separately from the table data swap; this is occurring based on an event that is sent to the client from the server. Think of those scenarios when you are viewing your cart in your favorite online store, and you want to delete a couple items you don't really need. Well, we have a couple of different values across the cart view page that rely upon the cart entity represented on the server: the subtotal, the count of items, the line-items associated with each item, etc. So how do we change all of those different sections of the page without switching to either a full page reload or using a SPA? You use client side trigger events! The delete button on an item will trigger the first of many effects. Deletion of that row item will come first where we swap out the table of items in our cart, but with that response to the delete item request will come an event, and our other dependent fields will be listening for that event. They then can make their own requests to update and swap out their content with the correct values. That is exactly what happens here on the count element.</p>
+  </div>
+
+  <br>
+
+  @await Html.PartialAsync("_SearchTableCount", count)
+
+  <hr />
+
+  <table class="table">
+
+    <thead>
+      <tr>
+        <th>
+          @Html.DisplayNameFor(model => model.EmpId)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.NamePrefix)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.FirstName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.MiddleInitial)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.LastName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Gender)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Email)
+        </th>
+        @*
+        <th>
+          @Html.DisplayNameFor(model => model.FathersName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.MothersName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.MothersMaidenName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.DateOfBirth)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.TimeOfBirth)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.AgeInYears)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.WeightInKgs)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.DateOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.QuarterOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.HalfOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.YearOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.MonthOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.MonthNameOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.ShortMonth)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.DayOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.DOWOfJoining)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.ShortDOW)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.AgeInCompanyYears)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Salary)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.LastPercentHike)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.SSN)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.PhoneNumber)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.PlaceName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.County)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.City)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.State)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Zip)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Region)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.UserName)
+        </th>
+        <th>
+          @Html.DisplayNameFor(model => model.Password)
+        </th>
+        <th></th>
+        *@
+      </tr>
+    </thead>
+
+      @await Html.PartialAsync("_SearchTable", Model)
+
+  </table>
+
+</body>

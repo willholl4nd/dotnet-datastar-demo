@@ -1,9 +1,19 @@
+using Microsoft.EntityFrameworkCore;
+
+using dotnet_html_sortable_table.Data;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddDbContext<SqliteContext>(options => 
+    options.UseSqlite("Data Source=demo.db"));
+
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
