@@ -1,0 +1,40 @@
+@model DemoObject
+@using dotnet_html_sortable_table.Models;
+
+@{
+  int size = (int)ViewData["Size"];
+  ViewData["Title"] = "Sortable List";
+}
+
+<div>
+  <h1>Howdy!</h1>
+  <p>This is the first of the HTMX demo pages. This is a demonstration of how, given a table of elements that we want to enable sorting upon, we can make simple, small requests to the server to sort the data in a particular way and return the results. The server is in charge of maintaining the data and state, and returns a view in the form of HTML to the client. In this instance, the server keeps track of the data and toggleable sort order, and then returns the sorted table. From there, with the newly sorted HTML data available, we target the old data in the table for replacement and HTMX swaps it out. This is a great opportunity to break the code we want to replace out into smaller chunks in the form of partial views.</p>
+</div>
+<hr />
+
+<table class="table"
+  <thead>
+    <tr class="headers">
+      <th
+        hx-get="/Demo/1?id=@(Model.Id)&size=@(size)"
+        hx-target="#tablecontent">
+        @Html.DisplayNameFor(model => model.Table[0].Id)
+      </th>
+      <th
+        hx-get="/Demo/2?id=@(Model.Id)&size=@(size)"
+        hx-target="#tablecontent">
+        @Html.DisplayNameFor(model => model.Table[0].RandInt)
+      </th>
+      <th
+        hx-get="/Demo/3?id=@(Model.Id)&size=@(size)"
+        hx-target="#tablecontent">
+        @Html.DisplayNameFor(model => model.Table[0].Name)
+      </th>
+    </tr>
+  </thead>
+
+  <tbody id="tablecontent"> 
+    @await Html.PartialAsync("_TableData", Model.Table)
+  </tbody>
+
+</table>

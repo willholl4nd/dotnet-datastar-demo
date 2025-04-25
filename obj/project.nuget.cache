@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+7SlPiJls/KgKYsIlLbTOPdSqjYvFn9LazGtNlgqqbwYp9siL16fPKCjvF02pys0j8v5RuSY2CNjYGGEhObyhA==",
+  "dgSpecHash": "rdqZ8xLC0uI80v1QX6nCZUkBg3dhThC76yr7Niwb//GjLy8Sb+w7na0BT5f9akCR8lAAMAD5Z0NCPe3OeeMyXw==",
   "success": true,
-  "projectFilePath": "/Users/will/Projects/dotnet-htmx-demo/dotnet-html-sortable-table.csproj",
+  "projectFilePath": "/Users/will/Projects/dotnet-datastar-demo/dotnet-html-sortable-table.csproj",
   "expectedPackageFiles": [
     "/Users/will/.nuget/packages/htmx/1.7.0/htmx.1.7.0.nupkg.sha512",
     "/Users/will/.nuget/packages/htmx.taghelpers/1.7.0/htmx.taghelpers.1.7.0.nupkg.sha512",

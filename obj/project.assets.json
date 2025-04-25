@@ -6709,11 +6709,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/will/Projects/dotnet-htmx-demo/dotnet-html-sortable-table.csproj",
+      "projectUniqueName": "/Users/will/Projects/dotnet-datastar-demo/dotnet-html-sortable-table.csproj",
       "projectName": "dotnet-html-sortable-table",
-      "projectPath": "/Users/will/Projects/dotnet-htmx-demo/dotnet-html-sortable-table.csproj",
+      "projectPath": "/Users/will/Projects/dotnet-datastar-demo/dotnet-html-sortable-table.csproj",
       "packagesPath": "/Users/will/.nuget/packages/",
-      "outputPath": "/Users/will/Projects/dotnet-htmx-demo/obj/",
+      "outputPath": "/Users/will/Projects/dotnet-datastar-demo/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/will/.nuget/NuGet/NuGet.Config"

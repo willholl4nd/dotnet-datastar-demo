@@ -1,0 +1,8 @@
+@model int 
+
+<div id="counter"
+  hx-get="/AccountsListCount"
+  hx-swap="outerHTML"
+  hx-trigger="updateCount from:body">
+  <h3>Count: <span style="color: red">@Model</span></h3>
+</div>
