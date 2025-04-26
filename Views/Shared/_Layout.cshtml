@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="~/dotnet_html_sortable_table.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <div hx-trigger="every 500ms" hx-get hx-controller="Datastar" hx-action="GetDateTime" style="opacity: 0;"></div>
+    @*<div hx-trigger="every 500ms" hx-get hx-controller="Datastar" hx-action="GetDateTime" style="opacity: 0;"></div>*@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
@@ -20,23 +20,49 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Index">Home</a>
+                        <li class="nav-item dropdown">
+                          <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink1" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            HTMX
+                          </a>
+                          <ul class="dropdown-menu" aria-labelledby="navbarDarkDropdownMenuLink1">
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Demo">Sortable List</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Scroll">Infinite Scroll</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="AccountsList">Incremental Search</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Pagination">Pagination</a>
+                            </li>
+                          </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Demo">Sortable List</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Scroll">Infinite Scroll</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="AccountsList">Incremental Search</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Pagination">Pagination</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        <li class="nav-item dropdown">
+                          <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Datastar
+                          </a>
+                          <ul class="dropdown-menu" aria-labelledby="navbarDarkDropdownMenuLink2">
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Demo">Sortable List</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Scroll">Infinite Scroll</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="AccountsList">Incremental Search</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link text-dark" asp-area="" asp-controller="Datastar" asp-action="Pagination">Pagination</a>
+                            </li>
+                          </ul>
                         </li>
                     </ul>
                 </div>

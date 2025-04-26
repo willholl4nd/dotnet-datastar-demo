@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 
+using StarFederation.Datastar.DependencyInjection;
+
 using dotnet_html_sortable_table.Data;
+using dotnet_html_sortable_table.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +14,16 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<SqliteContext>(options => 
     options.UseSqlite("Data Source=demo.db"));
 
+builder.Services.AddDatastar();
+
+builder.Services.AddSingleton<SessionQueueStore>();
+builder.Services.AddSession(options => 
+{
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // customize if needed
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; // Important for GDPR compliance
+});
 
 var app = builder.Build();
 
@@ -26,7 +39,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthorization();
 

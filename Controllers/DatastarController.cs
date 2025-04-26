@@ -1,9 +1,14 @@
 using System.Diagnostics;
+
 using Microsoft.AspNetCore.Mvc;
+
+using StarFederation.Datastar.DependencyInjection;
+
 using Htmx;
 
 using dotnet_html_sortable_table.Models;
 using dotnet_html_sortable_table.Data;
+using dotnet_html_sortable_table.Services;
 
 namespace dotnet_html_sortable_table.Controllers;
 
@@ -12,15 +17,23 @@ public class DatastarController : Controller
 {
     private readonly ILogger<DatastarController> _logger;
     private readonly SqliteContext _context;
+    private readonly SessionQueueStore _sessionQueueStore;
     List<TodoItem> TodoList;
+        
+    private string SessionKey; 
 
-    public DatastarController(ILogger<DatastarController> logger, SqliteContext context)
+    public DatastarController(ILogger<DatastarController> logger, SqliteContext context, SessionQueueStore sessionQueueStore)
     {
         _logger = logger;
         _context = context;
+        _sessionQueueStore = sessionQueueStore;
         TodoList = [ new TodoItem { Id = 1, Name = "Grocery shop" }, new TodoItem { Id = 2, Name = "Cook" }, new TodoItem { Id = 3, Name = "Sleep" } ];
+
     }
 
+#region NormalRoutes
+    [HttpGet("")]
+    [HttpGet("Index")]
     public IActionResult Index()
     {
         return View();
@@ -32,7 +45,8 @@ public class DatastarController : Controller
     }
 
     [HttpGet("GetDateTime")]
-    public IActionResult GetDateTime() {
+    public IActionResult GetDateTime() 
+    {
         return PartialView("_LayoutDatetime", DateTime.Now);
     }
 
@@ -42,9 +56,13 @@ public class DatastarController : Controller
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
+#endregion
 
+
+#region IncrementalSearch
     [HttpGet("Accounts")]
-    public IActionResult AccountsList([FromQuery] int? size) {
+    public IActionResult AccountsList([FromQuery] int? size) 
+    {
         size ??= 100;
         var accounts = _context.Accounts.Take(size.Value).ToList();
 
@@ -55,7 +73,8 @@ public class DatastarController : Controller
     }
 
     [HttpPost("AccountsListFilter")]
-    public async Task<IActionResult> AccountsListFilter(string search, [FromQuery] int? size) {
+    public async Task<IActionResult> AccountsListFilter(string search, [FromQuery] int? size) 
+    {
         size ??= 100;
 
         IEnumerable<Accounts> accounts;
@@ -85,16 +104,20 @@ public class DatastarController : Controller
     }
 
     [HttpGet("AccountsListCount")]
-    public IActionResult AccountsListCount() {
+    public IActionResult AccountsListCount() 
+    {
         if (!Request.IsHtmx())
             return RedirectToAction("AccountsList", "Home");
 
         return PartialView("_SearchTableCount", (int)TempData["count"]);
     }
 
+#endregion
 
+#region InfiniteScroll
     [HttpGet("Scroll/{id?}")]
-    public IActionResult Scroll([FromQuery] int? size, [FromQuery] int? offset = 0, int? id = 1, [FromQuery] bool? split = false) {
+    public IActionResult Scroll([FromQuery] int? size, [FromQuery] int? offset = 0, int? id = 1, [FromQuery] bool? split = false) 
+    {
         size ??= 100;
         DemoObject d = _context.TableContainer.First(m => m.Id == id);
         var table = 
@@ -124,13 +147,60 @@ public class DatastarController : Controller
     }
 
     [HttpGet("OffsetInfo/{offset}")]
-    public IActionResult OffsetInfo(int offset){
+    public IActionResult OffsetInfo(int offset)
+    {
         Response.Headers.Add("Vary", "HX-Request");
         return PartialView("OffsetInfo", offset);
     }
 
+#endregion
+
+#region SortableList
+
+    [HttpGet("SortableList")]
+    public async Task SortableList([FromServices] IDatastarServerSentEventService sse) 
+    {
+        var sessionKey = HttpContext.Session.GetString("sortable");
+
+        Console.WriteLine($"Grabbing queue for {sessionKey} in {nameof(SortableList)}");
+        
+        var queue = _sessionQueueStore.GetOrCreate(sessionKey);
+
+        while (true) 
+        {
+            var sortEvent = queue.Take();
+
+            Console.WriteLine($"Event found in {nameof(SortableList)} with value {sortEvent}");
+
+            ServerSentEventMergeFragmentsOptions options = new()
+            {
+            };
+            await sse.MergeFragmentsAsync($"<div id='test'>Test {DateTime.Now.ToShortTimeString()}<div>", options);
+        }
+    }
+
+    [HttpPost("SortableSortBy/{col}")]
+    public IActionResult SortableSortBy(int col) 
+    {
+        var sessionKey = HttpContext.Session.GetString("sortable");
+
+        Console.WriteLine($"Grabbing queue for {sessionKey} in {nameof(SortableSortBy)}");
+
+        var queue = _sessionQueueStore.GetOrCreate(sessionKey);
+
+        queue.Add($"{col}");
+
+        Console.WriteLine($"Triggered the {nameof(SortableSortBy)} with value {col}");
+
+        return new NoContentResult();
+    }
+
+
     [HttpGet("Demo/{sortIdx?}")]
-    public IActionResult Demo(int? sortIdx, [FromQuery] int? size, [FromQuery] int id = 1) {
+    public IActionResult Demo(int? sortIdx, [FromQuery] int? size, [FromQuery] int id = 1) 
+    {
+        HttpContext.Session.SetString("sortable", Guid.NewGuid().ToString());
+
         size ??= 100;
         ViewData["Size"] = size;
         DemoObject d = _context.TableContainer.First(m => m.Id == id);
@@ -150,9 +220,11 @@ public class DatastarController : Controller
         }
     }
 
-    private void ChangeSort(DemoObject data, int sortIdx) {
+    private void ChangeSort(DemoObject data, int sortIdx) 
+    {
         foreach (var key in TempData.Keys)
             Console.WriteLine($"Key in TempData: {key}");
+
         Func<bool, string> sortType = (bool sort) => sort ? "Asc" : "Desc";
         switch (sortIdx) {
             case 1: {
@@ -189,8 +261,13 @@ public class DatastarController : Controller
         _context.SaveChanges();
     }
 
+
+#endregion
+
+#region Pagination
     [HttpGet("Pagination")]
-    public IActionResult Pagination([FromQuery] int? size, [FromQuery] int? offset) {
+    public IActionResult Pagination([FromQuery] int? size, [FromQuery] int? offset) 
+    {
         size ??= 100;
         offset ??= 0;
         int id = 1;
@@ -214,7 +291,8 @@ public class DatastarController : Controller
     }
 
     [HttpGet("PaginationTable")]
-    public IActionResult PaginationTable([FromQuery] int? size, [FromQuery] int? offset) {
+    public IActionResult PaginationTable([FromQuery] int? size, [FromQuery] int? offset) 
+    {
         if (!Request.IsHtmx()) {
             return RedirectToAction("Pagination");
         }
@@ -245,11 +323,13 @@ public class DatastarController : Controller
     }
 
     [HttpGet("PaginationCount")]
-    public IActionResult PaginationCount() {
+    public IActionResult PaginationCount() 
+    {
         return PartialView("_PageCount");
     }
 
-    private void DeterminePageOffset(int id, int size, int currentOffset, out int backOffset, out int forOffset) {
+    private void DeterminePageOffset(int id, int size, int currentOffset, out int backOffset, out int forOffset) 
+    {
         double count = _context.Entries.Where(m => m.DemoObjectId == id).Count();
         double divisions = count / size;
 
@@ -268,20 +348,28 @@ public class DatastarController : Controller
         }
     }
 
+#endregion
+
+#region Unused
     [HttpGet("TodoList")]
-    public IActionResult GetTodoList() {
+    public IActionResult GetTodoList() 
+    {
         return View("TodoList", TodoList);
     }
 
     [HttpPost("AddTodoItem")]
-    public void AddTodoItem([FromForm] string ItemName) {
+    public void AddTodoItem([FromForm] string ItemName) 
+    {
         int maxId = (from row in TodoList select row.Id).Max();
         TodoList.Add(new TodoItem { Id = maxId+1, Name = ItemName });
     }
 
     [HttpDelete("DeleteTodoItem/{id}")]
-    public void DeleteTodoItem(int id) {
+    public void DeleteTodoItem(int id) 
+    {
         TodoItem removed = (from row in TodoList where row.Id == id select row).First();
         TodoList.Remove(removed);
     }
+
+#endregion
 }
