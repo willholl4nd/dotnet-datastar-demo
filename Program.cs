@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 
 using StarFederation.Datastar.DependencyInjection;
@@ -20,9 +21,17 @@ builder.Services.AddSingleton<SessionQueueStore>();
 builder.Services.AddSession(options => 
 {
     options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // customize if needed
+    //options.IdleTimeout = TimeSpan.FromMinutes(30); // customize if needed
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true; // Important for GDPR compliance
+});
+
+builder.Services.AddResponseCompression(options => 
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Append("text/event-stream");
 });
 
 var app = builder.Build();
@@ -39,6 +48,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseResponseCompression();
 
 app.UseRouting();
 
