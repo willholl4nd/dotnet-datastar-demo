@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using StarFederation.Datastar.DependencyInjection;
 
@@ -8,6 +10,7 @@ using Htmx;
 
 using dotnet_html_sortable_table.Models;
 using dotnet_html_sortable_table.Data;
+using dotnet_html_sortable_table.Extensions;
 using dotnet_html_sortable_table.Services;
 
 namespace dotnet_html_sortable_table.Controllers;
@@ -157,6 +160,12 @@ public class DatastarController : Controller
 
 #region SortableList
 
+    public record SortJson(int col, bool direction, int size = 100);
+
+    // TODO Rethink how we are using the frontend to communicate the column and direction
+    // to sort, how we are persisting that information, and how we are then updating the 
+    // DOM with new content.
+
     [HttpGet("SortableList")]
     public async Task SortableList([FromServices] IDatastarServerSentEventService sse) 
     {
@@ -170,17 +179,33 @@ public class DatastarController : Controller
         {
             var sortEvent = queue.Take();
 
+            SortJson? sort = (SortJson?) JsonSerializer.Deserialize(sortEvent, typeof(SortJson));
+
             Console.WriteLine($"Event found in {nameof(SortableList)} with value {sortEvent}");
 
-            ServerSentEventMergeFragmentsOptions options = new()
+            if (sort != null) 
             {
-            };
-            await sse.MergeFragmentsAsync($"<div id='test'>Test {DateTime.Now.ToShortTimeString()}<div>", options);
+                DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+                List<DemoTable> table = 
+                    (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(sort.size).ToList();
+                d.Table = table;
+
+                Console.WriteLine("Changing the sort of the table");
+                ChangeSort(d, sort.col, !sort.direction);
+
+                Console.WriteLine("Rendering Table view to HTML");
+                var htmlString = await this.RenderViewToStringAsync("_TableData", d.Table, true);
+                Console.WriteLine("Finished rendering table to HTML");
+                await sse.MergeFragmentsAsync(htmlString);
+                Console.WriteLine("Finished sending table to client");
+            }
+
+            await sse.MergeFragmentsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
         }
     }
 
-    [HttpPost("SortableSortBy/{col}")]
-    public IActionResult SortableSortBy(int col) 
+    [HttpPost("SortableSortBy")]
+    public async Task<IActionResult> SortableSortBy([FromBody] SortJson sort) 
     {
         var sessionKey = HttpContext.Session.GetString("sortable");
 
@@ -188,74 +213,62 @@ public class DatastarController : Controller
 
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
-        queue.Add($"{col}");
+        queue.Add(JsonSerializer.Serialize(sort));
 
-        Console.WriteLine($"Triggered the {nameof(SortableSortBy)} with value {col}");
+        Console.WriteLine($"Triggered the {nameof(SortableSortBy)} with value {sort.col} and {sort.direction}");
 
         return new NoContentResult();
     }
 
 
-    [HttpGet("Demo/{sortIdx?}")]
-    public IActionResult Demo(int? sortIdx, [FromQuery] int? size, [FromQuery] int id = 1) 
+    [HttpGet("Demo")]
+    public IActionResult Demo() 
     {
         HttpContext.Session.SetString("sortable", Guid.NewGuid().ToString());
 
-        size ??= 100;
-        ViewData["Size"] = size;
-        DemoObject d = _context.TableContainer.First(m => m.Id == id);
+        int size = 100;
+        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
         List<DemoTable> table = 
-            (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(size.Value).ToList();
+            (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(size).ToList();
         d.Table = table;
 
-        if (HttpContext.Request.IsHtmx())
-        {
-            sortIdx ??= 1;
-            ChangeSort(d, sortIdx.Value);
-
-            Response.Headers.Add("Vary", "HX-Request");
-            return PartialView("_TableData", d.Table);
-        } else {
-            return View("Table", d);
-        }
+        return View("Table", d);
     }
 
-    private void ChangeSort(DemoObject data, int sortIdx) 
-    {
-        foreach (var key in TempData.Keys)
-            Console.WriteLine($"Key in TempData: {key}");
 
+    private void ChangeSort(DemoObject data, int sortIdx, bool direction) 
+    {
         Func<bool, string> sortType = (bool sort) => sort ? "Asc" : "Desc";
         switch (sortIdx) {
             case 1: {
-                        bool temp = !data.IdSort;
+                        bool temp = direction;
                         Console.WriteLine($"Sort Id: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.Id).ToList() : data.Table.OrderByDescending(m => m.Id).ToList();
                         data.IdSort = temp;
                         break;
                     }
             case 2: {
-                        bool temp = !data.RandIntSort;
+                        bool temp = direction;
                         Console.WriteLine($"Sort RandInt: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.RandInt).ToList() : data.Table.OrderByDescending(m => m.RandInt).ToList();
                         data.RandIntSort = temp;
                         break;
                     }
             case 3: {
-                        bool temp = !data.NameSort;
+                        bool temp = direction;
                         Console.WriteLine($"Sort Name: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.Name).ToList() : data.Table.OrderByDescending(m => m.Name).ToList();
                         data.NameSort = temp;
                         break;
                     }
 
-            default: {
-                         bool temp = !data.IdSort;
+           default: {
+                        bool temp = direction;
                         Console.WriteLine($"Sort Id: {sortType(temp)}");
-                         data.Table = temp ? data.Table.OrderBy(m => m.Id).ToList() : data.Table.OrderByDescending(m => m.Id).ToList();
-                         data.IdSort = temp;
-                         break;
-                     }
+                        data.Table = temp ? data.Table.OrderBy(m => m.Id).ToList() : data.Table.OrderByDescending(m => m.Id).ToList();
+                        data.IdSort = temp;
+                        break;
+                    }
         }
         _context.Update(data);
         _context.SaveChanges();

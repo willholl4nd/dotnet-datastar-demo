@@ -2,73 +2,47 @@
 @using dotnet_html_sortable_table.Models;
 
 @{
-  int size = (int)ViewData["Size"];
   ViewData["Title"] = "Sortable List";
 }
 
 <div>
   <h1>Howdy!</h1>
-  <p>This is the first of the HTMX demo pages. This is a demonstration of how, given a table of elements that we want to enable sorting upon, we can make simple, small requests to the server to sort the data in a particular way and return the results. The server is in charge of maintaining the data and state, and returns a view in the form of HTML to the client. In this instance, the server keeps track of the data and toggleable sort order, and then returns the sorted table. From there, with the newly sorted HTML data available, we target the old data in the table for replacement and HTMX swaps it out. This is a great opportunity to break the code we want to replace out into smaller chunks in the form of partial views.</p>
+  <p>This is the first of the Datastar demo pages. This is a demonstration of how, given a table of elements that we want to enable sorting upon, we can make simple, small requests to the server to sort the data in a particular way whenever we click the column headers and change the input box for the size. The server can be in charge of maintaining the state, and ultimately is responsible for the persistence, but we are storing the client state of the input element and the signals in the client. Here we have three signals: column, direction, and size. The column signal tells us which column to sort on, the direction signal which way to sort the column, and the size signal how many elements in the table to include. From our simple request when signals change, which is throttled to prevent spamming the mouse on a column header, and debounced to enable only one signal state change being picked up when multiple signals change very quickly, we can put together a sorted table in the server that streams back to the client via HTTP SSE streams. Any data being streamed, whether it's updates to signals, or new DOM fragments to be morphed in the DOM by id, can be sent down in one long living connection that has all the benefits of websockets, but none of the hassle of managing connection issues. We can build incredibly reactive UIs using signals and simple HTML.</p>
 </div>
 <hr />
 
-@*
-<table class="table">
-  <thead>
-    <tr class="headers">
-      <th
-        hx-get="/Demo/1?id=@(Model.Id)&size=@(size)"
-        hx-target="#tablecontent">
-        @Html.DisplayNameFor(model => model.Table[0].Id)
-      </th>
-      <th
-        hx-get="/Demo/2?id=@(Model.Id)&size=@(size)"
-        hx-target="#tablecontent">
-        @Html.DisplayNameFor(model => model.Table[0].RandInt)
-      </th>
-      <th
-        hx-get="/Demo/3?id=@(Model.Id)&size=@(size)"
-        hx-target="#tablecontent">
-        @Html.DisplayNameFor(model => model.Table[0].Name)
-      </th>
-    </tr>
-  </thead>
-
-  <tbody id="tablecontent"> 
-    @await Html.PartialAsync("_TableData", Model.Table)
-  </tbody>
-
-</table>
-*@
-
-
-<div id="test">
+<div id="test" class="text-center">
   Nothing here yet...
 </div>
 
+<div data-signals="{'direction': true, 'col': 0, 'size': 100}"> </div>
+<div class="text-center">
+  <p>Column being sorted: <span class="font-weight-bold" data-text="$col"></span>, with direction: <span data-text="!$direction ? 'Ascending' : 'Descending'"></span>, and size: <span data-text="$size"></span></p>
+  <label class=form-label">Size</label>
+  <input class="form-control" data-bind-size type="number" name="size" />
+</div>
+
 <table class="table" id="table" data-on-load="@@get('/Datastar/SortableList')">
-  <thead>
+  <thead data-on-signal-change__debounce.100ms="@@post('/Datastar/SortableSortBy')">
     <tr class="headers">
       <th
-        data-on-click="@@post('/Datastar/SortableSortBy/1')"
+        data-on-click__throttle.500ms="$direction = $col != 1 ? true : !$direction; $col = 1"
         >
         @Html.DisplayNameFor(model => model.Table[0].Id)
       </th>
       <th
-        hx-get="/Demo/2?id=@(Model.Id)&size=@(size)"
-        hx-target="#tablecontent">
+        data-on-click__throttle.500ms="$direction = $col != 2 ? true : !$direction; $col = 2"
+        >
         @Html.DisplayNameFor(model => model.Table[0].RandInt)
       </th>
       <th
-        hx-get="/Demo/3?id=@(Model.Id)&size=@(size)"
-        hx-target="#tablecontent">
+        data-on-click__throttle.500ms="$direction = $col != 3 ? true : !$direction; $col = 3"
+        >
         @Html.DisplayNameFor(model => model.Table[0].Name)
       </th>
     </tr>
   </thead>
 
-  <tbody id="tablecontent"> 
-    @await Html.PartialAsync("_TableData", Model.Table)
-  </tbody>
+  @await Html.PartialAsync("_TableData", Model.Table)
 
 </table>
