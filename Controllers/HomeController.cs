@@ -184,8 +184,6 @@ public class HomeController : Controller
                          break;
                      }
         }
-        _context.Update(data);
-        _context.SaveChanges();
     }
 
     [HttpGet("Pagination")]

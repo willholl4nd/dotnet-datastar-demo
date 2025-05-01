@@ -200,7 +200,9 @@ public class DatastarController : Controller
                 Console.WriteLine("Finished sending table to client");
             }
 
+            Console.WriteLine("Sending Last Updated fragment");
             await sse.MergeFragmentsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
+            Console.WriteLine("Finished sending Last Updated fragment");
         }
     }
 
@@ -270,8 +272,6 @@ public class DatastarController : Controller
                         break;
                     }
         }
-        _context.Update(data);
-        _context.SaveChanges();
     }
 
 
