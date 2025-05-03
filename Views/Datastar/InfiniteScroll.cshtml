@@ -3,7 +3,6 @@
 
 @{
   ViewData["Title"] = "Infinite Scroll";
-  bool split = (bool)ViewData["split"];
 }
 
 <style type="text/css" media="all">
@@ -19,37 +18,42 @@
 
 </style>
 
+<div data-signals="{split: false, offset: 0, size: 100}"></div>
+
 <div class="buttons">
-  <a class="btn btn-primary button-text" href="/Scroll?split=False">Full Scroll</a>
-  <a class="btn btn-primary button-text" href="/Scroll?split=True">Split Scroll</a>
+  <a class="btn btn-primary button-text" data-on-click="$split = false">Full Scroll</a>
+  <a class="btn btn-primary button-text" data-on-click="$split = true">Split Scroll</a>
+</div>
+<div class="text-center">
+  <input type="number" class="form-control" data-bind-size />
 </div>
 
 <div>
-  <p>Next up is the infinite scrolling effect you see on many social media applications. This is also extremely accessible through the use of HTMX. In this scenario, I have two different variations to demo. The first is the full scroll option, and the second is the split scroll option. 
-  </p>
-  <p>The first option is where the user will scroll to the bottom and that's when more content will be requested and appended to the table. The second option is where halfway down the table, we will request more, hopefully giving the illusion to the user that there is a never ending spring of content. These two options are using the same thing, but with slight differences where the trigger is placed in the table. The way to achieve this is to add trigger on reveal, which allows for a request to be triggered when that HTML element is rendered on the page and revealed to the user.</p>
+  <p>Next up is the infinite scrolling effect you see on many social media applications. This is also extremely accessible through the use of Datastar. In this scenario, I have two different variations to demo. The first is the full scroll option, and the second is the split scroll option.</p>
+  <p>The first option is where the user will scroll to the bottom and that's when more content will be requested and appended to the table. The second option is where halfway down the table, we will request more, hopefully giving the illusion to the user that there is a never ending spring of content. These two options are using the same thing, but with slight differences where the data-on-intersect is placed in the table. The way to achieve this is to add data-on-intersect, which allows for a request to be triggered when the HTML element that is rendered on the page is revealed to the user.</p>
+  <p>I am using a few signals to drive this: split, size, and offset. Split is a boolean that toggles where the data-on-intersect element appears in the appended content. Size is bound to the input bar beneath the buttons controlling split, and it determines how many elements are fetched. Offset tells us where in the list of data we need to pull data from to make sure we are getting new data, not recycling old data.</p>
 </div>
+
 
 <hr>
 <br>
 
-<table class="table"
+<table class="table" data-on-load="@@post('/Datastar/Scroll')">
   <thead>
     <tr class="headers">
       <th>
-        @Html.DisplayNameFor(model => model.Table[0].Id)
+        Id
       </th>
       <th>
-        @Html.DisplayNameFor(model => model.Table[0].RandInt)
+        RandInt
       </th>
       <th>
-        @Html.DisplayNameFor(model => model.Table[0].Name)
+        Name
       </th>
     </tr>
   </thead>
 
   <tbody id="tablecontent"> 
-    @await Html.PartialAsync("_ScrollTable", Model.Table)
   </tbody>
 
 </table>

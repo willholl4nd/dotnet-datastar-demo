@@ -118,35 +118,72 @@ public class DatastarController : Controller
 #endregion
 
 #region InfiniteScroll
-    [HttpGet("Scroll/{id?}")]
-    public IActionResult Scroll([FromQuery] int? size, [FromQuery] int? offset = 0, int? id = 1, [FromQuery] bool? split = false) 
+    public record Infinite(bool split, int offset, int size);
+
+    [HttpPost("Scroll")]
+    public async Task Scrollv1([FromBody] Infinite signals, [FromServices] IDatastarServerSentEventService sse) 
     {
-        size ??= 100;
-        DemoObject d = _context.TableContainer.First(m => m.Id == id);
+        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
         var table = 
             (from row in _context.Entries 
-                where row.DemoObjectId == d.Id && row.Id >= size * offset 
+                where row.DemoObjectId == d.Id && row.Id >= signals.offset 
                 select row)
             .OrderBy(m => m.Id)
-            .Take(size.Value)
+            .Take(signals.size)
+            .ToList();
+        d.Table = table;
+
+        var options = new ServerSentEventMergeFragmentsOptions 
+        {
+            Selector = "#tablecontent", 
+            MergeMode = StarFederation.Datastar.FragmentMergeMode.Append 
+        };
+
+        if (signals.split) 
+        {
+            bool divBy2 = signals.size % 2 == 0;
+            int takeAmount = divBy2 ? signals.size / 2 : (signals.size - 1) / 2;
+
+            var first = table.Take(takeAmount);
+            var second = table.TakeLast(signals.size - takeAmount);
+
+            var moreRows = await this.RenderViewToStringAsync("_InfiniteData", first, true);
+            await sse.MergeFragmentsAsync(moreRows, options);
+            
+            var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
+            await sse.MergeFragmentsAsync(intersector, options);
+
+            var moreRows2 = await this.RenderViewToStringAsync("_InfiniteData", second, true);
+            await sse.MergeFragmentsAsync(moreRows2, options);
+        }
+        else 
+        {
+            var moreRows = await this.RenderViewToStringAsync("_InfiniteData", table, true);
+            await sse.MergeFragmentsAsync(moreRows, options);
+
+            var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
+            await sse.MergeFragmentsAsync(intersector, options);
+        }
+
+
+        await sse.MergeSignalsAsync($"{{ offset: {signals.offset+signals.size} }}");
+    }
+
+    [HttpGet("Scroll")]
+    public IActionResult Scroll() 
+    {
+        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+        var table = 
+            (from row in _context.Entries 
+                where row.DemoObjectId == d.Id && row.Id >= 100 * 1
+                select row)
+            .OrderBy(m => m.Id)
+            .Take(100)
             .ToList();
 
         d.Table = table;
 
-        if (HttpContext.Request.IsHtmx())
-        {
-            offset++;
-            ViewData["offset"] = offset;
-            ViewData["size"] = size;
-            ViewData["split"] = split;
-            Response.Headers.Add("Vary", "HX-Request");
-            return PartialView("_ScrollTable", table);
-        } else {
-            ViewData["offset"] = 1;
-            ViewData["size"] = size;
-            ViewData["split"] = split;
-            return View("InfiniteScroll", d);
-        }
+        return View("InfiniteScroll", d);
     }
 
     [HttpGet("OffsetInfo/{offset}")]
