@@ -21,9 +21,9 @@ builder.Services.AddSingleton<SessionQueueStore>();
 builder.Services.AddSession(options => 
 {
     options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-    //options.IdleTimeout = TimeSpan.FromMinutes(30); // customize if needed
+    options.IdleTimeout = TimeSpan.FromMinutes(30); 
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true; // Important for GDPR compliance
+    options.Cookie.IsEssential = true; 
 });
 
 builder.Services.AddResponseCompression(options => 

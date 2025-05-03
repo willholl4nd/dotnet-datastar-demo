@@ -160,18 +160,16 @@ public class DatastarController : Controller
 
 #region SortableList
 
-    public record SortJson(int col, bool direction, int size = 100);
 
-    // TODO Rethink how we are using the frontend to communicate the column and direction
-    // to sort, how we are persisting that information, and how we are then updating the 
-    // DOM with new content.
+    public record Signals(SortJson sort, int count);
+    public record SortJson(int col, bool direction, int size = 100);
 
     [HttpGet("SortableList")]
     public async Task SortableList([FromServices] IDatastarServerSentEventService sse) 
     {
         var sessionKey = HttpContext.Session.GetString("sortable");
 
-        Console.WriteLine($"Grabbing queue for {sessionKey} in {nameof(SortableList)}");
+        _logger.LogInformation($"Grabbing queue for {sessionKey} in {nameof(SortableList)}");
         
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
@@ -181,7 +179,7 @@ public class DatastarController : Controller
 
             SortJson? sort = (SortJson?) JsonSerializer.Deserialize(sortEvent, typeof(SortJson));
 
-            Console.WriteLine($"Event found in {nameof(SortableList)} with value {sortEvent}");
+            _logger.LogInformation($"Event found in {nameof(SortableList)} with value {sortEvent}");
 
             if (sort != null) 
             {
@@ -190,42 +188,54 @@ public class DatastarController : Controller
                     (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(sort.size).ToList();
                 d.Table = table;
 
-                Console.WriteLine("Changing the sort of the table");
+                _logger.LogInformation("Changing the sort of the table");
                 ChangeSort(d, sort.col, !sort.direction);
 
-                Console.WriteLine("Rendering Table view to HTML");
+                _logger.LogInformation("Rendering Table view to HTML");
                 var htmlString = await this.RenderViewToStringAsync("_TableData", d.Table, true);
-                Console.WriteLine("Finished rendering table to HTML");
-                await sse.MergeFragmentsAsync(htmlString);
-                Console.WriteLine("Finished sending table to client");
+                _logger.LogInformation("Finished rendering table to HTML");
+                await sse.MergeFragmentsAsync(htmlString, new ServerSentEventMergeFragmentsOptions { MergeMode = StarFederation.Datastar.FragmentMergeMode.Outer });
+                _logger.LogInformation("Finished sending table to client");
+
             }
 
-            Console.WriteLine("Sending Last Updated fragment");
+            var loading = await this.RenderViewToStringAsync("_TableLoading", false, true);
+            await sse.MergeFragmentsAsync(loading);
+
+            var headers = await this.RenderViewToStringAsync("_TableHeaders", false, true);
+            await sse.MergeFragmentsAsync(headers);
+
+            _logger.LogInformation("Sending Last Updated fragment");
             await sse.MergeFragmentsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
-            Console.WriteLine("Finished sending Last Updated fragment");
+            _logger.LogInformation("Finished sending Last Updated fragment");
         }
     }
 
     [HttpPost("SortableSortBy")]
-    public async Task<IActionResult> SortableSortBy([FromBody] SortJson sort) 
+    public async Task SortableSortBy([FromBody] Signals signals, [FromServices] IDatastarServerSentEventService sse) 
     {
         var sessionKey = HttpContext.Session.GetString("sortable");
 
-        Console.WriteLine($"Grabbing queue for {sessionKey} in {nameof(SortableSortBy)}");
+        _logger.LogInformation($"Grabbing queue for {sessionKey} in {nameof(SortableSortBy)}");
 
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
-        queue.Add(JsonSerializer.Serialize(sort));
+        var loading = await this.RenderViewToStringAsync("_TableLoading", true, true);
+        await sse.MergeFragmentsAsync(loading);
 
-        Console.WriteLine($"Triggered the {nameof(SortableSortBy)} with value {sort.col} and {sort.direction}");
+        var headers = await this.RenderViewToStringAsync("_TableHeaders", true, true);
+        await sse.MergeFragmentsAsync(headers);
 
-        return new NoContentResult();
+        queue.Add(JsonSerializer.Serialize(signals.sort));
+
+        _logger.LogInformation($"Triggered the {nameof(SortableSortBy)} with value {signals.sort.col} and {signals.sort.direction}");
     }
 
 
     [HttpGet("Demo")]
     public IActionResult Demo() 
     {
+        // Think about storing GUID inside signal. This way we don't need to rely upon cookies as below
         HttpContext.Session.SetString("sortable", Guid.NewGuid().ToString());
 
         int size = 100;
@@ -244,21 +254,18 @@ public class DatastarController : Controller
         switch (sortIdx) {
             case 1: {
                         bool temp = direction;
-                        Console.WriteLine($"Sort Id: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.Id).ToList() : data.Table.OrderByDescending(m => m.Id).ToList();
                         data.IdSort = temp;
                         break;
                     }
             case 2: {
                         bool temp = direction;
-                        Console.WriteLine($"Sort RandInt: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.RandInt).ToList() : data.Table.OrderByDescending(m => m.RandInt).ToList();
                         data.RandIntSort = temp;
                         break;
                     }
             case 3: {
                         bool temp = direction;
-                        Console.WriteLine($"Sort Name: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.Name).ToList() : data.Table.OrderByDescending(m => m.Name).ToList();
                         data.NameSort = temp;
                         break;
@@ -266,7 +273,6 @@ public class DatastarController : Controller
 
            default: {
                         bool temp = direction;
-                        Console.WriteLine($"Sort Id: {sortType(temp)}");
                         data.Table = temp ? data.Table.OrderBy(m => m.Id).ToList() : data.Table.OrderByDescending(m => m.Id).ToList();
                         data.IdSort = temp;
                         break;

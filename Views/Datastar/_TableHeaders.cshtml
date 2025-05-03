@@ -1,0 +1,41 @@
+@model bool
+
+@if (!Model) 
+{
+  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.500ms="@@post('/Datastar/SortableSortBy')">
+    <tr class="headers">
+      <th
+        data-on-click="$sort.direction = $sort.col != 1 ? true : !$sort.direction; $sort.col = 1"
+        >
+        Id
+      </th>
+      <th
+        data-on-click="$sort.direction = $sort.col != 2 ? true : !$sort.direction; $sort.col = 2"
+        >
+        RandInt
+      </th>
+      <th
+        data-on-click="$sort.direction = $sort.col != 3 ? true : !$sort.direction; $sort.col = 3"
+        >
+        Name
+      </th>
+    </tr>
+  </thead>
+}
+else 
+{
+  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.500ms="@@post('/Datastar/SortableSortBy')">
+    <tr class="headers">
+      <th>
+        Id
+      </th>
+      <th>
+        RandInt
+      </th>
+      <th>
+        Name
+      </th>
+    </tr>
+  </thead>
+}
+
