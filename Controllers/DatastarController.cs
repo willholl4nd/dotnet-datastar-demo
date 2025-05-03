@@ -149,9 +149,13 @@ public class DatastarController : Controller
 
             var moreRows = await this.RenderViewToStringAsync("_InfiniteData", first, true);
             await sse.MergeFragmentsAsync(moreRows, options);
-            
-            var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
-            await sse.MergeFragmentsAsync(intersector, options);
+
+
+            if (table.Count() > 0) 
+            {
+                var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
+                await sse.MergeFragmentsAsync(intersector, options);
+            }
 
             var moreRows2 = await this.RenderViewToStringAsync("_InfiniteData", second, true);
             await sse.MergeFragmentsAsync(moreRows2, options);
@@ -161,8 +165,11 @@ public class DatastarController : Controller
             var moreRows = await this.RenderViewToStringAsync("_InfiniteData", table, true);
             await sse.MergeFragmentsAsync(moreRows, options);
 
-            var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
-            await sse.MergeFragmentsAsync(intersector, options);
+            if (table.Count() > 0) 
+            {
+                var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
+                await sse.MergeFragmentsAsync(intersector, options);
+            }
         }
 
 
