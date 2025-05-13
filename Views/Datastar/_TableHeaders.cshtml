@@ -2,7 +2,7 @@
 
 @if (!Model) 
 {
-  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.500ms="@@post('/Datastar/SortableSortBy')">
+  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.250ms="@@post('/Datastar/SortableSortBy')">
     <tr class="headers">
       <th
         data-on-click="$sort.direction = $sort.col != 1 ? true : !$sort.direction; $sort.col = 1"
@@ -24,7 +24,7 @@
 }
 else 
 {
-  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.500ms="@@post('/Datastar/SortableSortBy')">
+  <thead id="tableheaders" data-on-signal-change-sort.*__debounce.250ms="@@post('/Datastar/SortableSortBy')">
     <tr class="headers">
       <th>
         Id

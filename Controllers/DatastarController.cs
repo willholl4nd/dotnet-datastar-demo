@@ -63,56 +63,37 @@ public class DatastarController : Controller
 
 
 #region IncrementalSearch
-    [HttpGet("Accounts")]
-    public IActionResult AccountsList([FromQuery] int? size) 
-    {
-        size ??= 100;
-        var accounts = _context.Accounts.Take(size.Value).ToList();
+    public record Search(int size, string search);
 
-        TempData["count"] = _context.Accounts.Count();
-        ViewData["isFullRender"] = true;
-        ViewData["size"] = size;
-        return View("AccountsList", accounts);
+    [HttpGet("Accounts")]
+    public IActionResult AccountsList() 
+    {
+        return View("AccountsList");
     }
 
     [HttpPost("AccountsListFilter")]
-    public async Task<IActionResult> AccountsListFilter(string search, [FromQuery] int? size) 
+    public async Task AccountsListFilter([FromBody] Search search, [FromServices] IDatastarServerSentEventService sse) 
     {
-        size ??= 100;
-
         IEnumerable<Accounts> accounts;
         int count;
         if (search != null && !search.Equals("")) {
             accounts = (from row in _context.Accounts
-            where row.FirstName.Contains(search)
-            select row).Take(size.Value).ToList();
+            where row.FirstName.Contains(search.search)
+            select row).Take(search.size).ToList();
             
             count = (from row in _context.Accounts
-            where row.FirstName.Contains(search)
+            where row.FirstName.Contains(search.search)
             select row).Count();
         } else {
-            accounts = _context.Accounts.Take(size.Value).ToList();
+            accounts = _context.Accounts.Take(search.size).ToList();
             count = _context.Accounts.Count();
         }
 
-        TempData["count"] = count;
-        ViewData["isFullRender"] = false;
-        ViewData["size"] = size;
-        // Custom event that triggers the count to reload -- good for if multiple different sources on page can alter count
-        Response.Htmx(h => {
-                h.WithTrigger("updateCount");
-            });
-        Response.Headers.Add("Vary", "HX-Request");
-        return PartialView("_SearchTable", accounts);
-    }
+        var tableHtml = await this.RenderViewToStringAsync("_SearchTable", accounts, true);
+        await sse.MergeFragmentsAsync(tableHtml);
 
-    [HttpGet("AccountsListCount")]
-    public IActionResult AccountsListCount() 
-    {
-        if (!Request.IsHtmx())
-            return RedirectToAction("AccountsList", "Home");
-
-        return PartialView("_SearchTableCount", (int)TempData["count"]);
+        var countHtml = await this.RenderViewToStringAsync("_SearchTableCount", count, true);
+        await sse.MergeFragmentsAsync(countHtml);
     }
 
 #endregion
