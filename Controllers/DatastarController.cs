@@ -6,8 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 using StarFederation.Datastar.DependencyInjection;
 
-using Htmx;
-
 using dotnet_html_sortable_table.Models;
 using dotnet_html_sortable_table.Data;
 using dotnet_html_sortable_table.Extensions;
@@ -309,11 +307,12 @@ public class DatastarController : Controller
 #endregion
 
 #region Pagination
+
     [HttpGet("Pagination")]
-    public IActionResult Pagination([FromQuery] int? size, [FromQuery] int? offset) 
+    public IActionResult Pagination() 
     {
-        size ??= 100;
-        offset ??= 0;
+        int size = 100;
+        int offset = 0;
         int id = 1;
 
         var table = 
@@ -321,55 +320,35 @@ public class DatastarController : Controller
                 where row.DemoObjectId == id && row.Id >= size * offset 
                 select row)
             .OrderBy(m => m.Id)
-            .Take(size.Value)
+            .Take(size)
             .ToList();
 
         int backwardOffset, forwardOffset;
-        DeterminePageOffset(id, size.Value, offset.Value, out backwardOffset, out forwardOffset);
+        DeterminePageOffset(id, size, offset, out backwardOffset, out forwardOffset);
 
-        TempData["size"] = size;
-        TempData["forwardoffset"] = forwardOffset;
-        TempData["backwardoffset"] = backwardOffset;
-        TempData["count"] = table.Count();
         return View("PaginationTable", table);
     }
 
-    [HttpGet("PaginationTable")]
-    public IActionResult PaginationTable([FromQuery] int? size, [FromQuery] int? offset) 
+    [HttpPost("PaginationTable")]
+    public async Task PaginationTable([FromQuery] int offset, [FromBody] PaginationRecord pagination, [FromServices] IDatastarServerSentEventService sse) 
     {
-        if (!Request.IsHtmx()) {
-            return RedirectToAction("Pagination");
-        }
-
-        size ??= 100;
-        offset ??= 0;
-        int id = 1;
-
         var table = 
             (from row in _context.Entries 
-                where row.DemoObjectId == id && row.Id >= size * offset 
+                where row.DemoObjectId == 1 && row.Id >= pagination.size * offset 
                 select row)
             .OrderBy(m => m.Id)
-            .Take(size.Value)
+            .Take(pagination.size)
             .ToList();
 
         int backwardOffset, forwardOffset;
-        DeterminePageOffset(id, size.Value, offset.Value, out backwardOffset, out forwardOffset);
+        DeterminePageOffset(1, pagination.size, offset, out backwardOffset, out forwardOffset);
 
-        TempData["size"] = size;
-        TempData["forwardoffset"] = forwardOffset;
-        TempData["backwardoffset"] = backwardOffset;
-        TempData["count"] = table.Count();
-        Response.Htmx(h => {
-                h.WithTrigger("updateCount");
-            }); // Trigger button to refresh
-        return PartialView("_PageTable", table);
-    }
+        var paginationTable = await this.RenderViewToStringAsync("_PageTable", table, true);
+        await sse.MergeFragmentsAsync(paginationTable);
 
-    [HttpGet("PaginationCount")]
-    public IActionResult PaginationCount() 
-    {
-        return PartialView("_PageCount");
+        var pageData = new PaginationData(offset, forwardOffset, backwardOffset, table.Count());
+        var paginationButtons = await this.RenderViewToStringAsync("_PageCount", pageData, true);
+        await sse.MergeFragmentsAsync(paginationButtons);
     }
 
     private void DeterminePageOffset(int id, int size, int currentOffset, out int backOffset, out int forOffset) 
@@ -390,29 +369,6 @@ public class DatastarController : Controller
         } else {
             throw new Exception("How are we even here?");
         }
-    }
-
-#endregion
-
-#region Unused
-    [HttpGet("TodoList")]
-    public IActionResult GetTodoList() 
-    {
-        return View("TodoList", TodoList);
-    }
-
-    [HttpPost("AddTodoItem")]
-    public void AddTodoItem([FromForm] string ItemName) 
-    {
-        int maxId = (from row in TodoList select row.Id).Max();
-        TodoList.Add(new TodoItem { Id = maxId+1, Name = ItemName });
-    }
-
-    [HttpDelete("DeleteTodoItem/{id}")]
-    public void DeleteTodoItem(int id) 
-    {
-        TodoItem removed = (from row in TodoList where row.Id == id select row).First();
-        TodoList.Remove(removed);
     }
 
 #endregion

@@ -1,16 +1,24 @@
-@model IEnumerable<DemoTable>
-@using dotnet_html_sortable_table.Models;
 
-@{
-  int size = (int)TempData["size"];
-  int backwardoffset = (int)TempData["backwardoffset"];
-  int forwardoffset = (int)TempData["forwardoffset"];
+<style type="text/css" media="all">
+  .buttons {
+    display: flex;
+    justify-content: center;
+  }
 
-  var firstElement = Model.Take(1).ToList()[0];
-}
+  .button-text {
+    font-size: 24px;
+    margin: 5px;
+  }
 
-<div class="change" hx-trigger="updateCount from:body" hx-get="/PaginationCount">
-  @await Html.PartialAsync("_PageCount")
+  .mh-fit {
+    max-height: fit-content;
+  }
+</style>
+
+<div 
+  id="pagination-buttons" 
+  data-signals="{size: 100}" 
+  data-on-load="@@post('/Datastar/PaginationTable?offset=0')">
 </div>
 
 <hr>
@@ -20,20 +28,19 @@
   <thead>
     <tr class="headers">
       <th>
-        @Html.DisplayNameFor(model => firstElement.Id)
+        Id
       </th>
       <th>
-        @Html.DisplayNameFor(model => firstElement.RandInt)
+        RandInt
       </th>
       <th>
-        @Html.DisplayNameFor(model => firstElement.Name)
+        Name
       </th>
     </tr>
   </thead>
 
-  <tbody id="tablecontent"> 
-    @await Html.PartialAsync("_PageTable", Model)
-  </tbody>
+<tbody id="tablecontent"> 
+</tbody>
 
 </table>
  

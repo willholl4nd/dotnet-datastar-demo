@@ -1,45 +1,32 @@
-@{
-  int size = (int) TempData["size"];
-  int count = (int) TempData["count"];
-  int backwardoffset = (int) TempData["backwardoffset"];
-  int forwardoffset = (int) TempData["forwardoffset"];
-}
+@model PaginationData
+@using dotnet_html_sortable_table.Models;
 
-<style type="text/css" media="all">
-  .buttons {
-    display: flex;
-    justify-content: center;
-  }
+<div id="pagination-buttons">
+  <div class="buttons" id="button-group">
+    <button 
+      class="button-text btn btn-primary" 
+      data-on-click__once="@@post('/Datastar/PaginationTable?offset=@(Model.backwardoffset)')"
+      >
+      Prev Page
+    </button>
+    <label class="flow align-content-center mx-2">Size:</label>
+    <input data-bind-size class="mx-2 mh-fit align-self-center" type="number" data-on-signal-change-size="@@post('/Datastar/PaginationTable?offset=@(Model.offset)')"/>
+    <button 
+      class="button-text btn btn-primary" 
+      data-on-click__once="@@post('/Datastar/PaginationTable?offset=@(Model.forwardoffset)')"
+      >
+      Next Page
+    </button>
+  </div>
 
-  .button-text {
-    font-size: 24px;
-    margin: 5px;
-  }
-</style>
+  <br/>
 
-<div class="buttons" id="button-group">
-  <button 
-    class="button-text btn btn-primary" 
-    hx-get="/PaginationTable?size=@size&offset=@backwardoffset"
-    hx-target="#tablecontent"
-    hx-push-url="true">
-    Prev Page
-  </button>
-  <button 
-    class="button-text btn btn-primary" 
-    hx-get="/PaginationTable?size=@size&offset=@forwardoffset"
-    hx-target="#tablecontent"
-    hx-push-url="true">
-    Next Page
-  </button>
-</div>
+  <div>
+    <p>And lastly, we have a demo of how we can do pagination in a table. This works much like the sortable list where we press something on the page and the table contents are replaced. This is a pretty simple example. The count displays how many elements are on the page like the other pages in the demo. When you press the navigation buttons for the table, the entire div containing the buttons and the count are replaced in one fragment over SSE, and in another fragment the table contents are sent down over the same SSE stream.</p>
+    <p>Something of note is that the page buttons are only clickable once before they are replaced, and with Datastar's morphing behavior, you keep the focus on the element even though it is replaced underneath. This is really powerful, and since I have the button limited to one usage, I can spam this button as quickly as the server can respond to it and the browser can then morph the content in. Rate limiting could then be applied server side, or we could make the offset a signal and debounce on the client side. </p>
+  </div>
 
-<br/>
-
-<div>
-  <p>And lastly, we have a demo of how we can do pagination in a table. This works much like the sortable list where we press something on the page and the table contents are replaced. This is a pretty simple example. The count displays how many elements are on the page like the other pages in the demo. When you press the navigation buttons for the table, the entire div containing the buttons and the count are replaced via event in the same way the count was replaced on the incremental search page; The table content is directly replaced from the call.</p>
-</div>
-
-<div id="count">
-  <h3>Count: <span style="color: red">@count</span></h3>
+  <div id="count">
+    <h3>Count: <span style="color: red">@(Model.count)</span></h3>
+  </div>
 </div>
