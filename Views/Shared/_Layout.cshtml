@@ -6,7 +6,6 @@
     @*<title hx-trigger="every 500ms" hx-get hx-controller="Datastar" hx-action="GetDateTime">@(await Html.PartialAsync("_LayoutDatetime", DateTime.Now))</title>*@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/dotnet_html_sortable_table.styles.css" asp-append-version="true" />
 </head>
 <body>
     @*<div hx-trigger="every 500ms" hx-get hx-controller="Datastar" hx-action="GetDateTime" style="opacity: 0;"></div>*@
@@ -80,12 +79,11 @@
             &copy; 2024 - dotnet_datastar - <a asp-area="" asp-controller="Datastar" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
-    @*<script type="module" src="~/lib/datastar/datastar.js"></script>*@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-beta.11/bundles/datastar.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

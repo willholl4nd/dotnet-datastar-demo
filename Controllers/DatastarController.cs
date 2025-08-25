@@ -70,7 +70,7 @@ public class DatastarController : Controller
     }
 
     [HttpPost("AccountsListFilter")]
-    public async Task AccountsListFilter([FromBody] Search search, [FromServices] IDatastarServerSentEventService sse) 
+    public async Task AccountsListFilter([FromBody] Search search, [FromServices] IDatastarService sse) 
     {
         IEnumerable<Accounts> accounts;
         int count;
@@ -88,10 +88,10 @@ public class DatastarController : Controller
         }
 
         var tableHtml = await this.RenderViewToStringAsync("_SearchTable", accounts, true);
-        await sse.MergeFragmentsAsync(tableHtml);
+        await sse.PatchElementsAsync(tableHtml);
 
         var countHtml = await this.RenderViewToStringAsync("_SearchTableCount", count, true);
-        await sse.MergeFragmentsAsync(countHtml);
+        await sse.PatchElementsAsync(countHtml);
     }
 
 #endregion
@@ -100,7 +100,7 @@ public class DatastarController : Controller
     public record Infinite(bool split, int offset, int size);
 
     [HttpPost("Scroll")]
-    public async Task Scrollv1([FromBody] Infinite signals, [FromServices] IDatastarServerSentEventService sse) 
+    public async Task Scrollv1([FromBody] Infinite signals, [FromServices] IDatastarService sse) 
     {
         DemoObject d = _context.TableContainer.First(m => m.Id == 1);
         var table = 
@@ -112,10 +112,10 @@ public class DatastarController : Controller
             .ToList();
         d.Table = table;
 
-        var options = new ServerSentEventMergeFragmentsOptions 
+        var options = new PatchElementsOptions 
         {
             Selector = "#tablecontent", 
-            MergeMode = StarFederation.Datastar.FragmentMergeMode.Append 
+            PatchMode = StarFederation.Datastar.ElementPatchMode.Append
         };
 
         if (signals.split) 
@@ -127,32 +127,32 @@ public class DatastarController : Controller
             var second = table.TakeLast(signals.size - takeAmount);
 
             var moreRows = await this.RenderViewToStringAsync("_InfiniteData", first, true);
-            await sse.MergeFragmentsAsync(moreRows, options);
+            await sse.PatchElementsAsync(moreRows, options);
 
 
             if (table.Count() > 0) 
             {
                 var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
-                await sse.MergeFragmentsAsync(intersector, options);
+                await sse.PatchElementsAsync(intersector, options);
             }
 
             var moreRows2 = await this.RenderViewToStringAsync("_InfiniteData", second, true);
-            await sse.MergeFragmentsAsync(moreRows2, options);
+            await sse.PatchElementsAsync(moreRows2, options);
         }
         else 
         {
             var moreRows = await this.RenderViewToStringAsync("_InfiniteData", table, true);
-            await sse.MergeFragmentsAsync(moreRows, options);
+            await sse.PatchElementsAsync(moreRows, options);
 
             if (table.Count() > 0) 
             {
                 var intersector = await this.RenderViewToStringAsync("_InfiniteIntersector", null, true);
-                await sse.MergeFragmentsAsync(intersector, options);
+                await sse.PatchElementsAsync(intersector, options);
             }
         }
 
 
-        await sse.MergeSignalsAsync($"{{ offset: {signals.offset+signals.size} }}");
+        await sse.PatchSignalsAsync(signals with { offset = signals.offset + signals.size });
     }
 
     [HttpGet("Scroll")]
@@ -188,7 +188,7 @@ public class DatastarController : Controller
     public record SortJson(int col, bool direction, int size = 100);
 
     [HttpGet("SortableList")]
-    public async Task SortableList([FromServices] IDatastarServerSentEventService sse) 
+    public async Task SortableList([FromServices] IDatastarService sse) 
     {
         var sessionKey = HttpContext.Session.GetString("sortable");
 
@@ -217,25 +217,25 @@ public class DatastarController : Controller
                 _logger.LogInformation("Rendering Table view to HTML");
                 var htmlString = await this.RenderViewToStringAsync("_TableData", d.Table, true);
                 _logger.LogInformation("Finished rendering table to HTML");
-                await sse.MergeFragmentsAsync(htmlString, new ServerSentEventMergeFragmentsOptions { MergeMode = StarFederation.Datastar.FragmentMergeMode.Outer });
+                await sse.PatchElementsAsync(htmlString, new PatchElementsOptions { PatchMode = StarFederation.Datastar.ElementPatchMode.Outer });
                 _logger.LogInformation("Finished sending table to client");
 
             }
 
             var loading = await this.RenderViewToStringAsync("_TableLoading", false, true);
-            await sse.MergeFragmentsAsync(loading);
+            await sse.PatchElementsAsync(loading);
 
             var headers = await this.RenderViewToStringAsync("_TableHeaders", false, true);
-            await sse.MergeFragmentsAsync(headers);
+            await sse.PatchElementsAsync(headers);
 
             _logger.LogInformation("Sending Last Updated fragment");
-            await sse.MergeFragmentsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
+            await sse.PatchElementsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
             _logger.LogInformation("Finished sending Last Updated fragment");
         }
     }
 
     [HttpPost("SortableSortBy")]
-    public async Task SortableSortBy([FromBody] Signals signals, [FromServices] IDatastarServerSentEventService sse) 
+    public async Task SortableSortBy([FromBody] Signals signals, [FromServices] IDatastarService sse) 
     {
         var sessionKey = HttpContext.Session.GetString("sortable");
 
@@ -244,10 +244,10 @@ public class DatastarController : Controller
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
         var loading = await this.RenderViewToStringAsync("_TableLoading", true, true);
-        await sse.MergeFragmentsAsync(loading);
+        await sse.PatchElementsAsync(loading);
 
         var headers = await this.RenderViewToStringAsync("_TableHeaders", true, true);
-        await sse.MergeFragmentsAsync(headers);
+        await sse.PatchElementsAsync(headers);
 
         queue.Add(JsonSerializer.Serialize(signals.sort));
 
@@ -330,7 +330,7 @@ public class DatastarController : Controller
     }
 
     [HttpPost("PaginationTable")]
-    public async Task PaginationTable([FromQuery] int offset, [FromBody] PaginationRecord pagination, [FromServices] IDatastarServerSentEventService sse) 
+    public async Task PaginationTable([FromQuery] int offset, [FromBody] PaginationRecord pagination, [FromServices] IDatastarService sse) 
     {
         var table = 
             (from row in _context.Entries 
@@ -344,11 +344,11 @@ public class DatastarController : Controller
         DeterminePageOffset(1, pagination.size, offset, out backwardOffset, out forwardOffset);
 
         var paginationTable = await this.RenderViewToStringAsync("_PageTable", table, true);
-        await sse.MergeFragmentsAsync(paginationTable);
+        await sse.PatchElementsAsync(paginationTable);
 
         var pageData = new PaginationData(offset, forwardOffset, backwardOffset, table.Count());
         var paginationButtons = await this.RenderViewToStringAsync("_PageCount", pageData, true);
-        await sse.MergeFragmentsAsync(paginationButtons);
+        await sse.PatchElementsAsync(paginationButtons);
     }
 
     private void DeterminePageOffset(int id, int size, int currentOffset, out int backOffset, out int forOffset) 
