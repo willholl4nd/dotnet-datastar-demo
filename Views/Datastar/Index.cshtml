@@ -8,3 +8,25 @@
     <p>"Harness the simplicity of server-side rendering and the power of a frontend framework, with a single 10.75 KiB file."</p>
     <p>Learn about <a href="https://data-star.dev/" target=_blank>Datastar</a>.</p>
 </div>
+
+<div class="text-center mt-3">
+    <br />
+    <hr />
+    <br />
+    <h4>What is Datastar?</h4>
+    <p>
+        To meet the high-throughput demands of a government application (processing thousands of data points per second) and address the limitations of HTMX, Delaney Gillilan created Datastar. Where HTMX drifted toward becoming “SPA-lite,” Delaney returned to the core idea of a hypermedia framework.
+    </p>
+    <p>
+        Datastar’s architecture is plugin-based: the core contains only Server-Sent Events (SSE) and signals, keeping it just a few kilobytes in size. Everything else is provided through plugins layered on top. Despite its tiny footprint, the core is powerful enough to deliver a full real-time, reactive, multiplayer framework. All this is packed into a single JavaScript file that’s significantly smaller than HTMX + Alpine.js combined, yet offering more functionality than both. Like HTMX, it works with any backend and can be sprinkled in wherever reactivity is needed.
+    </p>
+    <p>
+        Some projects built with Datastar would be impractical in other frameworks because of the setup and overhead they demand. A great example is One Million Checkboxes, a viral side project where users could toggle from a million checkboxes on one page, which was so popular it was featured in the <a href="https://www.nytimes.com/2024/07/03/style/one-million-checkboxes-game.html">New York Times</a>. While the original project struggled under viral scale, One Billion Checkboxes by Anders Murphy, built with Datastar, handled even greater scale on a cheap VPS. This illustrates Datastar’s strength: multiplayer, real-time web applications become dramatically easier when state lives in the right place, unlike in modern SPA frameworks such as React or Next.js.
+    </p>
+    <p>
+        With Datastar, there’s also no need to fiddle with WebSockets. Browsers natively support SSE (text/event-stream), handling reconnections, disconnections, and tab lifecycles automatically (with configurable behavior). Middleware on the server can even apply windowed Brotli compression to SSE streams, reducing bandwidth usage over time, all transparently to the client since both SSE and Brotli are part of the browser spec.
+    </p>
+    <p>
+        Datastar encourages developers to sprinkle it in gradually, using SSE, or even just plain text/html and text/javascript, to add reactive, real-time, multiplayer capabilities exactly where they’re needed. To demonstrate this in action, I’ve put together a demo for you.
+    </p>
+</div>
