@@ -7,6 +7,7 @@ using dotnet_html_sortable_table.Data;
 
 namespace dotnet_html_sortable_table.Controllers;
 
+[Route("Home")]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
@@ -20,14 +21,10 @@ public class HomeController : Controller
         TodoList = [ new TodoItem { Id = 1, Name = "Grocery shop" }, new TodoItem { Id = 2, Name = "Cook" }, new TodoItem { Id = 3, Name = "Sleep" } ];
     }
 
+    [HttpGet("Index")]
     public IActionResult Index()
     {
-        return View();
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
+        return View("Index");
     }
 
     [HttpGet("GetDateTime")]
@@ -79,7 +76,7 @@ public class HomeController : Controller
         Response.Htmx(h => {
                 h.WithTrigger("updateCount");
             });
-        Response.Headers.Add("Vary", "HX-Request");
+        Response.Headers.Append("Vary", "HX-Request");
         return PartialView("_SearchTable", accounts);
     }
 
@@ -112,7 +109,7 @@ public class HomeController : Controller
             ViewData["offset"] = offset;
             ViewData["size"] = size;
             ViewData["split"] = split;
-            Response.Headers.Add("Vary", "HX-Request");
+            Response.Headers.Append("Vary", "HX-Request");
             return PartialView("_ScrollTable", table);
         } else {
             ViewData["offset"] = 1;
@@ -124,7 +121,7 @@ public class HomeController : Controller
 
     [HttpGet("OffsetInfo/{offset}")]
     public IActionResult OffsetInfo(int offset){
-        Response.Headers.Add("Vary", "HX-Request");
+        Response.Headers.Append("Vary", "HX-Request");
         return PartialView("OffsetInfo", offset);
     }
 
@@ -142,7 +139,7 @@ public class HomeController : Controller
             sortIdx ??= 1;
             ChangeSort(d, sortIdx.Value);
 
-            Response.Headers.Add("Vary", "HX-Request");
+            Response.Headers.Append("Vary", "HX-Request");
             return PartialView("_TableData", d.Table);
         } else {
             return View("Table", d);
