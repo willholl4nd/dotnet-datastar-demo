@@ -37,17 +37,6 @@ public class DatastarController : Controller
         return View();
     }
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-    [HttpGet("GetDateTime")]
-    public IActionResult GetDateTime() 
-    {
-        return PartialView("_LayoutDatetime", DateTime.Now);
-    }
-
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
@@ -167,13 +156,6 @@ public class DatastarController : Controller
         d.Table = table;
 
         return View("InfiniteScroll", d);
-    }
-
-    [HttpGet("OffsetInfo/{offset}")]
-    public IActionResult OffsetInfo(int offset)
-    {
-        Response.Headers.Add("Vary", "HX-Request");
-        return PartialView("OffsetInfo", offset);
     }
 
 #endregion
