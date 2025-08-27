@@ -4,7 +4,6 @@
 {
   <div id="loading" class="text-center" 
     data-show="$count > 1"
-    data-on-load="$count = 0"
     data-on-interval="$count++"
     >
     <svg class="m-3" width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" fill="#b2b2b2">
@@ -22,5 +21,5 @@
 } 
 else 
 {
-  <div id="loading" data-on-load="$count = 0"></div>
+  <div id="loading"></div>
 }
