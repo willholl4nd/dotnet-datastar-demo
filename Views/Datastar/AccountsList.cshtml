@@ -20,7 +20,7 @@
     <label>Search First Names: </label>
     <input type="text"
     data-bind-search
-    data-on-signal-change__debounce.100ms="@@post('/Datastar/AccountsListFilter')"
+    data-on-signal-patch__debounce.100ms="@@post('/Datastar/AccountsListFilter')"
     placeholder="Search..." />
   </div>
   <div class="mt-3 input-container">

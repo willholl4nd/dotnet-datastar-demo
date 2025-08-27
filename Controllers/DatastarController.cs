@@ -13,26 +13,23 @@ using dotnet_html_sortable_table.Services;
 
 namespace dotnet_html_sortable_table.Controllers;
 
+[Route("")]
 [Route("Datastar")]
 public class DatastarController : Controller
 {
     private readonly ILogger<DatastarController> _logger;
     private readonly SqliteContext _context;
     private readonly SessionQueueStore _sessionQueueStore;
-    List<TodoItem> TodoList;
-        
-    private string SessionKey; 
 
     public DatastarController(ILogger<DatastarController> logger, SqliteContext context, SessionQueueStore sessionQueueStore)
     {
         _logger = logger;
         _context = context;
         _sessionQueueStore = sessionQueueStore;
-        TodoList = [ new TodoItem { Id = 1, Name = "Grocery shop" }, new TodoItem { Id = 2, Name = "Cook" }, new TodoItem { Id = 3, Name = "Sleep" } ];
-
     }
 
 #region NormalRoutes
+
     [HttpGet("")]
     [HttpGet("Index")]
     public IActionResult Index()
@@ -59,9 +56,9 @@ public class DatastarController : Controller
 
 #endregion
 
-
 #region IncrementalSearch
-    public record Search(int size, string search);
+
+    public record Filter(int size, string search);
 
     [HttpGet("Accounts")]
     public IActionResult AccountsList() 
@@ -70,33 +67,34 @@ public class DatastarController : Controller
     }
 
     [HttpPost("AccountsListFilter")]
-    public async Task AccountsListFilter([FromBody] Search search, [FromServices] IDatastarService sse) 
+    public async Task AccountsListFilter([FromBody] Filter filter, [FromServices] IDatastarService sse) 
     {
         IEnumerable<Accounts> accounts;
         int count;
-        if (search != null && !search.Equals("")) {
+        if (filter != null && !filter.Equals("")) {
             accounts = (from row in _context.Accounts
-            where row.FirstName.Contains(search.search)
-            select row).Take(search.size).ToList();
+            where row.FirstName.Contains(filter.search)
+            select row).Take(filter.size).ToList();
             
             count = (from row in _context.Accounts
-            where row.FirstName.Contains(search.search)
+            where row.FirstName.Contains(filter.search)
             select row).Count();
         } else {
-            accounts = _context.Accounts.Take(search.size).ToList();
+            accounts = _context.Accounts.Take(filter.size).ToList();
             count = _context.Accounts.Count();
         }
 
-        var tableHtml = await this.RenderViewToStringAsync("_SearchTable", accounts, true);
+        var tableHtml = await this.RenderViewToStringAsync("_AccountListTable", accounts, true);
         await sse.PatchElementsAsync(tableHtml);
 
-        var countHtml = await this.RenderViewToStringAsync("_SearchTableCount", count, true);
+        var countHtml = await this.RenderViewToStringAsync("_AccountListCount", count, true);
         await sse.PatchElementsAsync(countHtml);
     }
 
 #endregion
 
 #region InfiniteScroll
+
     public record Infinite(bool split, int offset, int size);
 
     [HttpPost("Scroll")]
@@ -151,7 +149,6 @@ public class DatastarController : Controller
             }
         }
 
-
         await sse.PatchSignalsAsync(signals with { offset = signals.offset + signals.size });
     }
 
@@ -183,29 +180,33 @@ public class DatastarController : Controller
 
 #region SortableList
 
-
     public record Signals(SortJson sort, int count);
     public record SortJson(int col, bool direction, int size = 100);
 
     [HttpGet("SortableList")]
     public async Task SortableList([FromServices] IDatastarService sse) 
     {
+        // Fetch a session key stored within the browser session
         var sessionKey = HttpContext.Session.GetString("sortable");
 
         _logger.LogInformation($"Grabbing queue for {sessionKey} in {nameof(SortableList)}");
         
+        // Grab the queue to listen for incoming requests from
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
         while (true) 
         {
+            // Blocking "take" from queue
             var sortEvent = queue.Take();
 
+            // Now that a request has come through, fetch all details from the queue
             SortJson? sort = (SortJson?) JsonSerializer.Deserialize(sortEvent, typeof(SortJson));
 
             _logger.LogInformation($"Event found in {nameof(SortableList)} with value {sortEvent}");
 
             if (sort != null) 
             {
+                // Sort the table according to the request
                 DemoObject d = _context.TableContainer.First(m => m.Id == 1);
                 List<DemoTable> table = 
                     (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(sort.size).ToList();
@@ -214,20 +215,30 @@ public class DatastarController : Controller
                 _logger.LogInformation("Changing the sort of the table");
                 ChangeSort(d, sort.col, !sort.direction);
 
+                // Render the table as HTML
                 _logger.LogInformation("Rendering Table view to HTML");
                 var htmlString = await this.RenderViewToStringAsync("_TableData", d.Table, true);
                 _logger.LogInformation("Finished rendering table to HTML");
+
+                // Send the table down to the client
                 await sse.PatchElementsAsync(htmlString, new PatchElementsOptions { PatchMode = StarFederation.Datastar.ElementPatchMode.Outer });
                 _logger.LogInformation("Finished sending table to client");
 
             }
 
+            // Send the loading indicator down
             var loading = await this.RenderViewToStringAsync("_TableLoading", false, true);
             await sse.PatchElementsAsync(loading);
 
+            // Update signal for loading indicator to reset it
+            if (sort != null)
+                await sse.PatchSignalsAsync(new { count = 0 });
+
+            // Send down updated table headers so that user can sort the table again
             var headers = await this.RenderViewToStringAsync("_TableHeaders", false, true);
             await sse.PatchElementsAsync(headers);
 
+            // Send down time operation was completed
             _logger.LogInformation("Sending Last Updated fragment");
             await sse.PatchElementsAsync($"<div id='test' class='text-center mb-3 ft-2'>Last Updated {DateTime.Now.ToLongTimeString()}</div>");
             _logger.LogInformation("Finished sending Last Updated fragment");
@@ -241,14 +252,18 @@ public class DatastarController : Controller
 
         _logger.LogInformation($"Grabbing queue for {sessionKey} in {nameof(SortableSortBy)}");
 
+        // Grab the queue to make requests
         var queue = _sessionQueueStore.GetOrCreate(sessionKey);
 
+        // Send fragment down to client to show loading indicator
         var loading = await this.RenderViewToStringAsync("_TableLoading", true, true);
         await sse.PatchElementsAsync(loading);
 
+        // Send fragment down to client to disable further sorting
         var headers = await this.RenderViewToStringAsync("_TableHeaders", true, true);
         await sse.PatchElementsAsync(headers);
 
+        // Create request on queue for long-living endpoint to pickup
         queue.Add(JsonSerializer.Serialize(signals.sort));
 
         _logger.LogInformation($"Triggered the {nameof(SortableSortBy)} with value {signals.sort.col} and {signals.sort.direction}");
@@ -258,7 +273,6 @@ public class DatastarController : Controller
     [HttpGet("Demo")]
     public IActionResult Demo() 
     {
-        // Think about storing GUID inside signal. This way we don't need to rely upon cookies as below
         HttpContext.Session.SetString("sortable", Guid.NewGuid().ToString());
 
         int size = 100;
@@ -302,7 +316,6 @@ public class DatastarController : Controller
                     }
         }
     }
-
 
 #endregion
 
