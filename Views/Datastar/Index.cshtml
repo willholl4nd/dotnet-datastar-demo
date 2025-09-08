@@ -9,19 +9,51 @@
     <p>Learn about <a href="https://data-star.dev/" target=_blank>Datastar</a>.</p>
 </div>
 
-<div class="text-center mt-3">
+<div class="mt-3">
     <br />
     <hr />
+    <h4>Why do we need Datastar?</h4>
+    <p>
+    As you may or may not be aware, the current ecosystem of single-page application (SPA) frameworks/libraries has become very diverse and confusing for modern developers; A new JavaScript library is released hourly it seems! Devs are expected to learn everything but master none, and this has frustrated many people. Hypermedia (and Datastar in turn) aims to bring sanity back to the web development space, but it involves unlearning things so prepare yourself! 
+    </p>
+    <p>
+    What went wrong with SPAs? There are many things to point at, but I'll highlight just the few that are obvious that can be cleared up by Datastar:
+    <ul>
+        <li> Complexity (for even simple web apps) </li>
+        <li> Inefficiency (serialization/deserialization of JSON from server -> VDOM -> DOM) </li>
+        <li> State in wrong place (server state leaked into the frontend) </li>
+        <li> Abstraction (VDOM? JSON? We just need HTML, CSS, and JS to make a functional web app that's reactive) </li>
+        <li> Polling (Server polling rather than long-living connections) </li>
+    </ul>
+    </p>
+    <p>
+    HTMX, which is the second version of the Intercooler.js library, made some of the first attempts at bringing web dev back to simpler times. It achieved this by making AJAX calls to the server that requested new HTML fragments. These AJAX calls could be triggered by interacting with any HTML element that had specific custom HTMX attribute tags (hx-trigger="click") that would be interpreted by the library. HTMX has become increasing popular with time since its release in 2020, but some have come forward understanding that while it solves many of the initial problems I pointed out above, it still gets things wrong. In usage, many times it ends up being used to recreate a SPA, with leaked backend state in the DOM and utilizing polling for new content from the server. 
+    </p>
+    <p> 
+    To meet the high-throughput demands of a government application (processing thousands of data points per second) and address the limitations of HTMX, Delaney Gillilan created Datastar. While HTMX delivered on reducing complexity, bringing in the inefficiencies and abstraction issues inherent with the VDOM, it couldn't solve the state and polling issues. Datastar succeeds HTMX, and with it devs are capable of making 99% of web applications currently out on the Internet. 
+    </p>
+    <p>
+     To fix the issues HTMX couldn't, we will break it down:
+    </p>
+    <h6>State:</h6>
+    <p>
+    Datastar makes a distinction between client state and server state possible. Signals have become an increasingly popular technology for frontend frameworks, and Datastar has created the fastest implementation, utilizing similar logic to how Excel is able to cascade calculations all across an Excel sheet when cell values are changed. The author and contributors of the library have stated ample times that, while you can create thousands (probably millions) of signals, if you are doing this you are likely putting state in the wrong place; They have consistently pushed to make correct distinctions between client and server state.
+    </p>
+    <p> 
+    A third of the state issue is solved by using signals locally for client state (show/hiding DOM elements by toggling signal value), another third by using signals to bidirectionally bind signals and use them within the client and server, with the final third being solved just in how users implement their logic using something akin to <a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs">CQRS</a>. When you think of your server as primary for holding state before making the client hold it, you end up in a place where you can say that your frontend is just a projection of the server state in your backend. 
+    </p>
+    <h6>Polling:</h6>
+    <p> 
+    While HTMX is capable of utilizing Server-Sent Events (SSE), Datastar makes SSE its primary and preferred method of communication with the server from a user's browser. HTMX was primarily utilized by polling the server, which would make AJAX calls each time, opening new HTTP connections for each fragment that was required for the browser page to be updated and made to seem "reactive." SSE is preferred by Datastar because it is a single long-lived connection that remains open for the duration the user is connected. This single connection can provide new fragments and signals to the client, making the client reactive to events that stream from the server. This was the major switch in my head that made me realize how powerful Datastar was. User interaction in the client are events that get sent to the server, and these events can trigger new things to be rendered and sent to the client over the long living connection, making the client just as reflection of the state the server has.     </p>
+    </p>
+
     <br />
     <h4>What is Datastar?</h4>
     <p>
-        To meet the high-throughput demands of a government application (processing thousands of data points per second) and address the limitations of HTMX, Delaney Gillilan created Datastar. Where HTMX drifted toward becoming “SPA-lite,” Delaney returned to the core idea of a hypermedia framework.
+        Datastar’s architecture is plugin-based: the core contains only SSE and signals, keeping it just a few kilobytes in size. Everything else is provided through plugins layered on top. Despite its tiny footprint, the core is powerful enough to deliver a full real-time, reactive, multiplayer framework. All this is packed into a single JavaScript file that’s significantly smaller than HTMX + Alpine.js combined, yet offering more functionality than both. Like HTMX, it works with any backend and can be sprinkled in wherever reactivity is needed.
     </p>
     <p>
-        Datastar’s architecture is plugin-based: the core contains only Server-Sent Events (SSE) and signals, keeping it just a few kilobytes in size. Everything else is provided through plugins layered on top. Despite its tiny footprint, the core is powerful enough to deliver a full real-time, reactive, multiplayer framework. All this is packed into a single JavaScript file that’s significantly smaller than HTMX + Alpine.js combined, yet offering more functionality than both. Like HTMX, it works with any backend and can be sprinkled in wherever reactivity is needed.
-    </p>
-    <p>
-        Some projects built with Datastar would be impractical in other frameworks because of the setup and overhead they demand. A great example is One Million Checkboxes, a viral side project where users could toggle from a million checkboxes on one page, which was so popular it was featured in the <a href="https://www.nytimes.com/2024/07/03/style/one-million-checkboxes-game.html">New York Times</a>. While the original project struggled under viral scale, One Billion Checkboxes by Anders Murphy, built with Datastar, handled even greater scale on a cheap VPS. This illustrates Datastar’s strength: multiplayer, real-time web applications become dramatically easier when state lives in the right place, unlike in modern SPA frameworks such as React or Next.js.
+        Some projects built with Datastar would be impractical in other frameworks because of the setup and overhead they demand. A great example is One Million Checkboxes, a viral side project where users could toggle from a million checkboxes on one page, which was so popular it was featured in the <a href="https://www.nytimes.com/2024/07/03/style/one-million-checkboxes-game.html">New York Times</a>. While the original project struggled under viral scale, <a href="https://checkboxes.andersmurphy.com/">One Billion Checkboxes</a> by Anders Murphy, built with Datastar, handles even greater scale on a cheap VPS. This illustrates Datastar’s strength: multiplayer, real-time web applications become dramatically easier when state lives in the right place, unlike in modern SPA frameworks such as React or Next.js.
     </p>
     <p>
         With Datastar, there’s also no need to fiddle with WebSockets. Browsers natively support SSE (text/event-stream), handling reconnections, disconnections, and tab lifecycles automatically (with configurable behavior). Middleware on the server can even apply windowed Brotli compression to SSE streams, reducing bandwidth usage over time, all transparently to the client since both SSE and Brotli are part of the browser spec.
