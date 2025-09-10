@@ -15,6 +15,8 @@
     {
         public Guid MySenderId { get; set; }
 
+        public string RoomCode { get; set; }
+
         public IEnumerable<MessageViewModel> Messages { get; set; }
 
         public bool SSERunning { get; set; } = true;

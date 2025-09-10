@@ -375,12 +375,33 @@ public class DatastarController : Controller
     #endregion
 
 #region Conversation
-    public record NewMessage(Guid senderid, string message);
-    public record MessageEvent(string Type, Guid sourceSessionId);
+    public record NewMessage(Guid senderid, string message, string roomCode);
+    public record MessageEvent(string Type, Guid sourceSessionId, string roomCode);
     private readonly string ConversationCookieString = "conversation";
 
+    [HttpGet("SelectRoom")]
+    public IActionResult SelectRoom()
+    {
+        return View("SelectRoom");
+    }
+
+
+    [HttpPost("SelectRoom")]
+    [ValidateAntiForgeryToken]
+    public IActionResult SelectRoom([Bind] SelectRoomViewModel room)
+    {
+        if (!ModelState.IsValid)
+        {
+            // Invalid room code given (empty)
+            return View("SelectRoom", room);
+        }
+
+        return RedirectToAction("Conversation", new { room.RoomCode });
+    }
+
+
     [HttpGet("Conversation")]
-    public IActionResult Conversation()
+    public IActionResult Conversation([FromQuery] string roomCode)
     {
         // This is the initial endpoint hit for the page to load everything
 
@@ -389,6 +410,7 @@ public class DatastarController : Controller
         var isParsed = Guid.TryParse(sessionKey, out Guid currentSenderId);
         var models = 
             _messagesContext.Messages
+            .Where(m => m.ChatRoomKey == roomCode)
             .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == currentSenderId })
             .ToList();
 
@@ -406,7 +428,7 @@ public class DatastarController : Controller
         }
 
         bool sseRunning = !isParsed ? true : _messagesContext.ConversationUsers.AsNoTracking().First(m => m.SessionId == myId).IsStreaming;
-        return View(new ChatViewModel { Messages = models, MySenderId = myId, SSERunning = sseRunning });
+        return View(new ChatViewModel { Messages = models, MySenderId = myId, SSERunning = sseRunning, RoomCode = roomCode });
     }
 
     [HttpGet("ConversationSSE")]
@@ -454,9 +476,15 @@ public class DatastarController : Controller
                 continue;
             }
 
+            if (eventObj.roomCode != sessionObj.roomCode && eventObj.Type == "refresh")
+            {
+                Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: Event in SSE endpoint does not have matching room code so we are skipping the event: {JsonSerializer.Serialize(eventObj)}");
+                continue;
+            }
+
             var html = eventObj.Type switch
             {
-                "refresh" => await MessageHelper(sessionKey, eventObj.sourceSessionId),
+                "refresh" => await MessageHelper(sessionKey, eventObj.sourceSessionId, eventObj.roomCode),
                 "stop" => await UserStreamingChange(sessionKey, false),
                 "start" => await UserStreamingChange(sessionKey, true),
                 _ => ""
@@ -482,7 +510,7 @@ public class DatastarController : Controller
         return await this.RenderViewToStringAsync("_ConversationSSE", status);
     }
 
-    private async Task<string> MessageHelper(string? sessionKey, Guid eventSource)
+    private async Task<string> MessageHelper(string? sessionKey, Guid eventSource, string roomCode)
     {
 
         if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
@@ -493,6 +521,7 @@ public class DatastarController : Controller
 
         var models =
             _messagesContext.Messages
+            .Where(m => m.ChatRoomKey == roomCode)
             .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == sessionKeyGuid })
             .ToList();
 
@@ -505,7 +534,7 @@ public class DatastarController : Controller
             return "";
         }
 
-        var viewModel = new ChatViewModel() { Messages = models, MySenderId = sessionKeyGuid, SSERunning = sseRunning };
+        var viewModel = new ChatViewModel() { Messages = models, MySenderId = sessionKeyGuid, SSERunning = sseRunning, RoomCode = roomCode };
         return await this.RenderViewToStringAsync("Conversation", viewModel, isPartial: false);
     }
 
@@ -528,7 +557,8 @@ public class DatastarController : Controller
         MessageModel model = new()
         {
             MessageContent = message.message,
-            SenderSessionID = sessionKeyGuid
+            SenderSessionID = sessionKeyGuid,
+            ChatRoomKey = message.roomCode
         };
 
         _messagesContext.Add(model);
@@ -539,7 +569,7 @@ public class DatastarController : Controller
 
         await sse.PatchSignalsAsync(message with { message = string.Empty });
 
-        _broadcastQueue.Broadcast(JsonSerializer.Serialize(new MessageEvent("refresh", sessionKeyGuid)));
+        _broadcastQueue.Broadcast(JsonSerializer.Serialize(new MessageEvent("refresh", sessionKeyGuid, message.roomCode)));
     }
 
     [HttpGet("StopConversation")]
@@ -551,7 +581,7 @@ public class DatastarController : Controller
         {
             if (_broadcastQueue.TryGet(sessionKey, out var queue))
             {
-                queue.Add(JsonSerializer.Serialize(new MessageEvent("stop", sessionKeyGuid)));
+                queue.Add(JsonSerializer.Serialize(new MessageEvent("stop", sessionKeyGuid, string.Empty)));
             }
         }
     }
@@ -565,7 +595,7 @@ public class DatastarController : Controller
         {
             if (_broadcastQueue.TryGet(sessionKey, out var queue))
             {
-                queue.Add(JsonSerializer.Serialize(new MessageEvent("start", sessionKeyGuid)));
+                queue.Add(JsonSerializer.Serialize(new MessageEvent("start", sessionKeyGuid, string.Empty)));
             }
         }
     }

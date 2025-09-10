@@ -1,0 +1,27 @@
+﻿@using dotnet_html_sortable_table.Models
+@model SelectRoomViewModel
+
+<style>
+    .h-fit {
+        height: fit-content;
+    }
+</style>
+
+<main class="container">
+    <h2 class="text-center">Create Your Room</h2>
+    <hr />
+    <br />
+
+    <form asp-action="SelectRoom" asp-controller="Datastar" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="form-group row text-center mt-4">
+            <label asp-for="RoomCode" class="col-sm-2 col-form-label">Enter Room Code</label>
+            <div class="col-sm-8">
+                <input asp-for="RoomCode" class="form-control" />
+                <span asp-validation-for="RoomCode" class="text-danger"></span>
+            </div>
+            <button class="btn btn-secondary col-sm-2 h-fit" type="submit">Start Chat Room</button>
+        </div>
+    </form>
+</main>

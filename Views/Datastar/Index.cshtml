@@ -6,7 +6,7 @@
     <h1 class="display-4">Welcome to the Datastar Demo</h1>
     <p>"Datastar is a lightweight framework for building everything from simple sites to real-time collaborative web apps."</p>
     <p>"Harness the simplicity of server-side rendering and the power of a frontend framework, with a single 10.75 KiB file."</p>
-    <p>Learn about <a href="https://data-star.dev/" target=_blank>Datastar</a>.</p>
+    <p>Learn about <a class="link-dark" href="https://data-star.dev/" target=_blank>Datastar</a>.</p>
 </div>
 
 <div class="mt-3">
@@ -40,7 +40,7 @@
     Datastar makes a distinction between client state and server state possible. Signals have become an increasingly popular technology for frontend frameworks, and Datastar has created the fastest implementation, utilizing similar logic to how Excel is able to cascade calculations all across an Excel sheet when cell values are changed. The author and contributors of the library have stated ample times that, while you can create thousands (probably millions) of signals, if you are doing this you are likely putting state in the wrong place; They have consistently pushed to make correct distinctions between client and server state.
     </p>
     <p> 
-    A third of the state issue is solved by using signals locally for client state (show/hiding DOM elements by toggling signal value), another third by using signals to bidirectionally bind signals and use them within the client and server, with the final third being solved just in how users implement their logic using something akin to <a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs">CQRS</a>. When you think of your server as primary for holding state before making the client hold it, you end up in a place where you can say that your frontend is just a projection of the server state in your backend. 
+    A third of the state issue is solved by using signals locally for client state (show/hiding DOM elements by toggling signal value), another third by using signals to bidirectionally bind signals and use them within the client and server, with the final third being solved just in how users implement their logic using something akin to <a class="link-dark" target="_blank" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs">CQRS</a>. When you think of your server as primary for holding state before making the client hold it, you end up in a place where you can say that your frontend is just a projection of the server state in your backend. 
     </p>
     <h6>Polling:</h6>
     <p> 
@@ -53,7 +53,7 @@
         Datastar’s architecture is plugin-based: the core contains only SSE and signals, keeping it just a few kilobytes in size. Everything else is provided through plugins layered on top. Despite its tiny footprint, the core is powerful enough to deliver a full real-time, reactive, multiplayer framework. All this is packed into a single JavaScript file that’s significantly smaller than HTMX + Alpine.js combined, yet offering more functionality than both. Like HTMX, it works with any backend and can be sprinkled in wherever reactivity is needed.
     </p>
     <p>
-        Some projects built with Datastar would be impractical in other frameworks because of the setup and overhead they demand. A great example is One Million Checkboxes, a viral side project where users could toggle from a million checkboxes on one page, which was so popular it was featured in the <a href="https://www.nytimes.com/2024/07/03/style/one-million-checkboxes-game.html">New York Times</a>. While the original project struggled under viral scale, <a href="https://checkboxes.andersmurphy.com/">One Billion Checkboxes</a> by Anders Murphy, built with Datastar, handles even greater scale on a cheap VPS. This illustrates Datastar’s strength: multiplayer, real-time web applications become dramatically easier when state lives in the right place, unlike in modern SPA frameworks such as React or Next.js.
+        Some projects built with Datastar would be impractical in other frameworks because of the setup and overhead they demand. A great example is One Million Checkboxes, a viral side project where users could toggle from a million checkboxes on one page, which was so popular it was featured in the <a class="link-dark" target="_blank" href="https://www.nytimes.com/2024/07/03/style/one-million-checkboxes-game.html">New York Times</a>. While the original project struggled under viral scale, <a class="link-dark" target="_blank" href="https://checkboxes.andersmurphy.com/">One Billion Checkboxes</a> by Anders Murphy, built with Datastar, handles even greater scale on a cheap VPS. This illustrates Datastar’s strength: multiplayer, real-time web applications become dramatically easier when state lives in the right place, unlike in modern SPA frameworks such as React or Next.js.
     </p>
     <p>
         With Datastar, there’s also no need to fiddle with WebSockets. Browsers natively support SSE (text/event-stream), handling reconnections, disconnections, and tab lifecycles automatically (with configurable behavior). Middleware on the server can even apply windowed Brotli compression to SSE streams, reducing bandwidth usage over time, all transparently to the client since both SSE and Brotli are part of the browser spec.
@@ -61,4 +61,36 @@
     <p>
         Datastar encourages developers to sprinkle it in gradually, using SSE, or even just plain text/html and text/javascript, to add reactive, real-time, multiplayer capabilities exactly where they’re needed. To demonstrate this in action, I’ve put together a demo for you.
     </p>
+
+    <br />
+    <h4>Other Demos</h4>
+    <ul>
+        <li>
+            <a class="link-dark" target="_blank" href="https://checkboxes.andersmurphy.com/">One Billion Checkboxes</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://minesweeper.gazpachoking.net/">Undetermined</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://andersmurphy.com/2025/04/07/clojure-realtime-collaborative-web-apps-without-clojurescript.html">Game of Life (multiplayer)</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://jawbreaker-production.up.railway.app/datastar">Jawbreaker</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://datastar-todomvc.cross.stream/">TodoMVC</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://unac.threadgold.nz/">Ultimate Noughts & Crosses</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://schreiaj.github.io/walker-docs/">Robot Walking SVG Example</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://zweiundeins.gmbh/de/tools">Web Tools</a>
+        </li>
+        <li>
+            <a class="link-dark" target="_blank" href="https://conductorsam.com/">Conductor Sam</a>
+        </li>
+    </ul>
 </div>

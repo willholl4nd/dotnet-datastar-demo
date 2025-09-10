@@ -58,7 +58,7 @@
     <div class="card shadow-sm w-100 chat-card">
         <div class="card-header bg-white d-flex align-items-center justify-content-between">
             <div>
-                <h5 class="mb-0">Chat room</h5>
+                <h5 class="mb-0">Chat room: @(Model.RoomCode)</h5>
                 <small>@("My Sender ID: " + Model.MySenderId)</small>
             </div>
             @(await Html.PartialAsync("_ConversationSSE", Model.SSERunning))
@@ -94,6 +94,7 @@
         <!-- Composer -->
         <div class="card-footer sticky-input">
             <div class="d-flex gap-2 align-items-start" id="chatForm">
+                <input data-bind-roomCode value="@Model.RoomCode" hidden />
                 <input data-bind-senderId value="@Model.MySenderId" hidden />
                 <textarea class="form-control" rows="2"
                           placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
