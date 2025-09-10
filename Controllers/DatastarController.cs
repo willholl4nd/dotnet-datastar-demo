@@ -10,6 +10,8 @@ using dotnet_html_sortable_table.Models;
 using dotnet_html_sortable_table.Data;
 using dotnet_html_sortable_table.Extensions;
 using dotnet_html_sortable_table.Services;
+using StarFederation.Datastar.ModelBinding;
+using System.Collections.Concurrent;
 
 namespace dotnet_html_sortable_table.Controllers;
 
@@ -20,12 +22,16 @@ public class DatastarController : Controller
     private readonly ILogger<DatastarController> _logger;
     private readonly SqliteContext _context;
     private readonly SessionQueueStore _sessionQueueStore;
+    private readonly MessagesContext _messagesContext;
+    private readonly BroadcastQueueStore _broadcastQueue;
 
-    public DatastarController(ILogger<DatastarController> logger, SqliteContext context, SessionQueueStore sessionQueueStore)
+    public DatastarController(ILogger<DatastarController> logger, SqliteContext context, SessionQueueStore sessionQueueStore, MessagesContext messagesContext, BroadcastQueueStore broadcastQueue)
     {
         _logger = logger;
         _context = context;
         _sessionQueueStore = sessionQueueStore;
+        _messagesContext = messagesContext;
+        _broadcastQueue = broadcastQueue;
     }
 
 #region NormalRoutes
@@ -179,7 +185,7 @@ public class DatastarController : Controller
         while (true) 
         {
             // Blocking "take" from queue
-            var sortEvent = queue.Take();
+            var sortEvent = queue.Take(HttpContext.RequestAborted);
 
             // Now that a request has come through, fetch all details from the queue
             SortJson? sort = (SortJson?) JsonSerializer.Deserialize(sortEvent, typeof(SortJson));
@@ -366,5 +372,210 @@ public class DatastarController : Controller
         }
     }
 
+    #endregion
+
+#region Conversation
+    public record NewMessage(Guid senderid, string message);
+    public record MessageEvent(string Type, Guid sourceSessionId);
+    private readonly string ConversationCookieString = "conversation";
+
+    [HttpGet("Conversation")]
+    public IActionResult Conversation()
+    {
+        // This is the initial endpoint hit for the page to load everything
+
+        // Fetch a session key stored within the browser session
+        var sessionKey = HttpContext.Session.GetString(ConversationCookieString);
+        var isParsed = Guid.TryParse(sessionKey, out Guid currentSenderId);
+        var models = 
+            _messagesContext.Messages
+            .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == currentSenderId })
+            .ToList();
+
+        Guid myId = isParsed ? currentSenderId : Guid.NewGuid();
+        if (!isParsed)
+        {
+            HttpContext.Session.SetString(ConversationCookieString, myId.ToString());
+            var newUser = new ConversationUserModel()
+            {
+                IsStreaming = true, 
+                SessionId = myId,
+            };
+            _messagesContext.Add(newUser);
+            _messagesContext.SaveChanges();
+        }
+
+        bool sseRunning = !isParsed ? true : _messagesContext.ConversationUsers.AsNoTracking().First(m => m.SessionId == myId).IsStreaming;
+        return View(new ChatViewModel { Messages = models, MySenderId = myId, SSERunning = sseRunning });
+    }
+
+    [HttpGet("ConversationSSE")]
+    public async Task ConversationSSE([FromServices] IDatastarService sse)
+    {
+        // This is the SSE connection endpoint that 
+
+        // Fetch a session key stored within the browser session
+        string? sessionKey = HttpContext.Session.GetString(ConversationCookieString);
+        var sessionObj = await sse.ReadSignalsAsync<NewMessage>();
+
+        bool returnFlag = false, returnFlag1 = false;
+        if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
+        {
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key: {sessionKey}");
+            returnFlag = true;
+        } else if (sessionObj == null || sessionObj.senderid == Guid.Empty)
+        {
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key: {JsonSerializer.Serialize(sessionObj)}");
+            returnFlag1 = true;
+        }
+
+        if (returnFlag && returnFlag1)
+        {
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key whatsoever");
+
+            await sse.ExecuteScriptAsync("location.reload();");
+            return;
+        }
+
+        Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has key: {sessionKey}");
+        sessionKey ??= sessionObj.senderid.ToString();
+
+        // Grab the queue to listen for incoming requests from
+        var queue = _broadcastQueue.GetOrCreate(sessionKey);
+
+        while (true)
+        {
+            var eventString = queue.Take(HttpContext.RequestAborted);
+
+            MessageEvent? eventObj = JsonSerializer.Deserialize<MessageEvent>(eventString);
+
+            if (eventObj == null)
+            {
+                continue;
+            }
+
+            var html = eventObj.Type switch
+            {
+                "refresh" => await MessageHelper(sessionKey, eventObj.sourceSessionId),
+                "stop" => await UserStreamingChange(sessionKey, false),
+                "start" => await UserStreamingChange(sessionKey, true),
+                _ => ""
+            };
+
+            Console.WriteLine($"Patching new refresh contents with length: {html.Length}");
+            await sse.PatchElementsAsync(html);
+        }
+    }
+
+    private async Task<string> UserStreamingChange(string? sessionKey, bool status)
+    {
+        if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
+        {
+            Console.WriteLine($"Could not parse guid: {sessionKey}");
+            return "";
+        }
+
+        var user = _messagesContext.ConversationUsers.First(m => m.SessionId == sessionKeyGuid);
+        user.IsStreaming = status;
+        await _messagesContext.SaveChangesAsync();
+
+        return await this.RenderViewToStringAsync("_ConversationSSE", status);
+    }
+
+    private async Task<string> MessageHelper(string? sessionKey, Guid eventSource)
+    {
+
+        if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
+        {
+            Console.WriteLine($"Could not parse guid: {sessionKey}");
+            return "";
+        }
+
+        var models =
+            _messagesContext.Messages
+            .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == sessionKeyGuid })
+            .ToList();
+
+        var user = _messagesContext.ConversationUsers.AsNoTracking().First(m => m.SessionId == sessionKeyGuid);
+        bool sseRunning = user.IsStreaming;
+
+        if (!sessionKeyGuid.Equals(eventSource) && !sseRunning)
+        {
+            // Event isn't from current user and the current user doesn't have sse running so return nothing
+            return "";
+        }
+
+        var viewModel = new ChatViewModel() { Messages = models, MySenderId = sessionKeyGuid, SSERunning = sseRunning };
+        return await this.RenderViewToStringAsync("Conversation", viewModel, isPartial: false);
+    }
+
+
+    [HttpPost("ConversationMessage")]
+    public async Task ConversationMessage([FromServices] IDatastarService sse)
+    {
+        // Fetch a session key stored within the browser session
+        var sessionKey = HttpContext.Session.GetString(ConversationCookieString);
+        NewMessage? message = await sse.ReadSignalsAsync<NewMessage>();
+
+        if (message is null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid) || sessionKeyGuid != message.senderid)
+        {
+            // TODO Patch something to refresh the page
+            await sse.PatchSignalsAsync(new { });
+            return;
+        }
+
+        // Create a new conversation message to be applied to chatroom
+        MessageModel model = new()
+        {
+            MessageContent = message.message,
+            SenderSessionID = sessionKeyGuid
+        };
+
+        _messagesContext.Add(model);
+        await _messagesContext.SaveChangesAsync();
+
+        // Grab the queue to listen for incoming requests from
+        var queue = _broadcastQueue.GetOrCreate(sessionKey);
+
+        await sse.PatchSignalsAsync(message with { message = string.Empty });
+
+        _broadcastQueue.Broadcast(JsonSerializer.Serialize(new MessageEvent("refresh", sessionKeyGuid)));
+    }
+
+    [HttpGet("StopConversation")]
+    public async Task StopConversation([FromServices] IDatastarService sse)
+    {
+        // Stop the conversation from flowing to the client browser by sending fragment without the SSE connection initiator
+        var sessionKey = HttpContext.Session.GetString(ConversationCookieString);
+        if (Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
+        {
+            if (_broadcastQueue.TryGet(sessionKey, out var queue))
+            {
+                queue.Add(JsonSerializer.Serialize(new MessageEvent("stop", sessionKeyGuid)));
+            }
+        }
+    }
+
+    [HttpGet("PlayConversation")]
+    public async Task PlayConversation([FromServices] IDatastarService sse)
+    {
+        // Resume/start the conversation flowing to the client browser by sending fragment with the SSE connection initiator
+        var sessionKey = HttpContext.Session.GetString(ConversationCookieString);
+        if (Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
+        {
+            if (_broadcastQueue.TryGet(sessionKey, out var queue))
+            {
+                queue.Add(JsonSerializer.Serialize(new MessageEvent("start", sessionKeyGuid)));
+            }
+        }
+    }
+
+    [HttpPost("AuthenticateConversation")]
+    [ValidateAntiForgeryToken]
+    public async Task AuthenticateConversation()
+    {
+        // Authentication to fetch chat window and allow user to start sending messages once we verify a code matches in this endpoint
+    }
+ 
 #endregion
 }

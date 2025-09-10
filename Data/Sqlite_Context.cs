@@ -11,7 +11,8 @@ public class SqliteContext : DbContext
     public DbSet<DemoObject> TableContainer { get; set; } = default!;
     public DbSet<Accounts> Accounts { get; set; } = default!;
 
-    public SqliteContext(DbContextOptions<SqliteContext> contextOptions) : base(contextOptions) {
+    public SqliteContext(DbContextOptions<SqliteContext> contextOptions) : base(contextOptions)
+    {
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

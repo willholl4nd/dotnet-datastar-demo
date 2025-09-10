@@ -1,0 +1,113 @@
+﻿@using dotnet_html_sortable_table.Models
+@model ChatViewModel
+
+<style>
+    body {
+        background: #f6f7fb;
+    }
+
+    .chat-card {
+        max-width: 900px;
+    }
+
+    .chat-log {
+        height: 60vh;
+        overflow-y: auto;
+    }
+
+    .msg-bubble {
+        border-radius: 1rem;
+        padding: .5rem .75rem;
+        max-width: 75%;
+    }
+
+    .msg-out {
+        background: #0d6efd;
+        color: #fff;
+        margin-left: auto;
+    }
+
+    .msg-in {
+        background: #e9ecef;
+        color: #212529;
+    }
+
+    .msg-meta {
+        font-size: .75rem;
+        opacity: .75;
+    }
+
+    .sticky-input {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+    }
+
+    .emoji {
+        line-height: 1;
+    }
+
+    /* Make the form controls large enough for touch */
+    textarea {
+        resize: none;
+    }
+
+</style>
+
+<main class="container py-4 d-flex justify-content-center">
+    <div class="card shadow-sm w-100 chat-card">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+            <div>
+                <h5 class="mb-0">Chat room</h5>
+                <small>@("My Sender ID: " + Model.MySenderId)</small>
+            </div>
+            @(await Html.PartialAsync("_ConversationSSE", Model.SSERunning))
+        </div>
+
+
+        <!-- Chat log -->
+        <div id="chatLog" class="card-body chat-log" data-on-load="resizeChat(el) && '@Guid.NewGuid().ToString()'">
+            @if (Model.Messages.Count() > 0)
+            {
+                foreach (var m in Model.Messages)
+                {
+                    var bubbleClass = m.IsMine ? "msg-bubble msg-out" : "msg-bubble msg-in";
+                    <div class="d-flex flex-column mb-2 @(m.IsMine ? "align-items-end" : "align-items-start")">
+                        <div class="@bubbleClass">
+                            @m.MessageContent
+                        </div>
+                        <div class="msg-meta @(m.IsMine ? "text-end" : "text-start") w-100">
+                            <span>@(m.IsMine ? "You" : m.SenderSessionID)</span>
+                            ·
+                            <time datetime="@m.DateCreated.ToString("o")">@m.DateCreated.ToLocalTime().ToString("MMM d, h:mm tt")</time>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">No messages yet. Say hello!</div>
+            }
+        </div>
+
+
+        <!-- Composer -->
+        <div class="card-footer sticky-input">
+            <div class="d-flex gap-2 align-items-start" id="chatForm">
+                <input data-bind-senderId value="@Model.MySenderId" hidden />
+                <textarea class="form-control" rows="2"
+                          placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+                          required
+                          data-bind-message 
+                          data-on-keydown="evt.key === 'Enter' && !evt.shiftKey && @@post('/Datastar/ConversationMessage')"></textarea>
+                <button class="btn btn-primary" data-on-click="@@post('/Datastar/ConversationMessage')">Send</button>
+            </div>
+        </div>
+    </div>
+</main>
+<script>
+    function resizeChat(element) {
+        element.scrollTop = element.scrollHeight;
+        console.log(element.scrollHeight);
+    }
+</script>

@@ -15,9 +15,13 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<SqliteContext>(options => 
     options.UseSqlite("Data Source=demo.db"));
 
+builder.Services.AddDbContext<MessagesContext>(options =>
+    options.UseSqlite("Data Source=message.db"));
+
 builder.Services.AddDatastar();
 
 builder.Services.AddSingleton<SessionQueueStore>();
+builder.Services.AddSingleton<BroadcastQueueStore>();
 builder.Services.AddSession(options => 
 {
     options.Cookie.SecurePolicy = CookieSecurePolicy.None;
