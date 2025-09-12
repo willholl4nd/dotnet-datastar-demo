@@ -9,6 +9,9 @@
 
 <main class="container">
     <h2 class="text-center">Create Your Room</h2>
+    <p>This demo displays how easy it is to make a chatroom with Datastar. Entering any string as a room code will bring you into that room (even if it already exists), and you can start chatting with other people in that room. There is a long living SSE connection that is used to send down updates to the chat window. While this is a very naive implementation of chatrooms, it also took me a couple days to implement, which is much faster than you could do with any other frontend framework combined with backend logic.</p>
+    <p>To make this quick to implement, users do not have usernames that are customizable, or any way to authenticate and save sessions for that person. Browser sessions tie messages to a user, but there is no persistence of that user session in the client browser beyond a cookie that gets reset once the session expires.</p>
+    <p>Messages can be sent by pressing enter after typing out the message or pressing the send button. These messages will be broadcast to everyone else that is connected to the same chatroom. Users that have the stop button pressed will not receive further SSE updates from chat activity, but can send a message and get the latest messages from the room. If the play button is pressed, messages will be sent down from the backend without user interaction when other users send messages into the chatroom. You'll also notice that the chat window automatically scrolls to the latest message.</p>
     <hr />
     <br />
 

@@ -375,7 +375,7 @@ public class DatastarController : Controller
     #endregion
 
 #region Conversation
-    public record NewMessage(Guid senderid, string message, string roomCode);
+    public record NewMessage(Guid senderid, string message, string roomcode, string ipv4);
     public record MessageEvent(string Type, Guid sourceSessionId, string roomCode);
     private readonly string ConversationCookieString = "conversation";
 
@@ -393,6 +393,7 @@ public class DatastarController : Controller
         if (!ModelState.IsValid)
         {
             // Invalid room code given (empty)
+            _logger.LogWarning($"{DateTime.Now.ToString("G")}: Invalid room code given");
             return View("SelectRoom", room);
         }
 
@@ -417,6 +418,8 @@ public class DatastarController : Controller
         Guid myId = isParsed ? currentSenderId : Guid.NewGuid();
         if (!isParsed)
         {
+            _logger.LogInformation($"{DateTime.Now.ToString("G")}: New user joined a chat room");
+
             HttpContext.Session.SetString(ConversationCookieString, myId.ToString());
             var newUser = new ConversationUserModel()
             {
@@ -427,6 +430,7 @@ public class DatastarController : Controller
             _messagesContext.SaveChanges();
         }
 
+        // Check if user is currently running SSE updates
         bool sseRunning = !isParsed ? true : _messagesContext.ConversationUsers.AsNoTracking().First(m => m.SessionId == myId).IsStreaming;
         return View(new ChatViewModel { Messages = models, MySenderId = myId, SSERunning = sseRunning, RoomCode = roomCode });
     }
@@ -440,26 +444,26 @@ public class DatastarController : Controller
         string? sessionKey = HttpContext.Session.GetString(ConversationCookieString);
         var sessionObj = await sse.ReadSignalsAsync<NewMessage>();
 
-        bool returnFlag = false, returnFlag1 = false;
+        bool sessionFlag = false, sessionFlag1 = false;
         if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
         {
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key: {sessionKey}");
-            returnFlag = true;
+            _logger.LogWarning($"{DateTime.Now.ToString("G")}: SSE Endpoint has no key: {sessionKey}");
+            sessionFlag = true;
         } else if (sessionObj == null || sessionObj.senderid == Guid.Empty)
         {
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key: {JsonSerializer.Serialize(sessionObj)}");
-            returnFlag1 = true;
+            _logger.LogWarning($"{DateTime.Now.ToString("G")}: SSE Endpoint has no key: {JsonSerializer.Serialize(sessionObj)}");
+            sessionFlag1 = true;
         }
 
-        if (returnFlag && returnFlag1)
+        if (sessionFlag && sessionFlag1)
         {
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has no key whatsoever");
+            _logger.LogWarning($"{DateTime.Now.ToString("G")}: SSE Endpoint has no key whatsoever");
 
             await sse.ExecuteScriptAsync("location.reload();");
             return;
         }
 
-        Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: SSE Endpoint has key: {sessionKey}");
+        _logger.LogInformation($"{DateTime.Now.ToString("G")}: SSE Endpoint has key: {sessionKey}");
         sessionKey ??= sessionObj.senderid.ToString();
 
         // Grab the queue to listen for incoming requests from
@@ -468,17 +472,19 @@ public class DatastarController : Controller
         while (true)
         {
             var eventString = queue.Take(HttpContext.RequestAborted);
+            _logger.LogInformation($"{DateTime.Now.ToString("G")}: Event found: {eventString}");
 
             MessageEvent? eventObj = JsonSerializer.Deserialize<MessageEvent>(eventString);
 
             if (eventObj == null)
             {
+                _logger.LogError($"{DateTime.Now.ToString("G")}: Event could not be parsed: {eventString}");
                 continue;
             }
 
-            if (eventObj.roomCode != sessionObj.roomCode && eventObj.Type == "refresh")
+            if (eventObj.roomCode != sessionObj.roomcode && eventObj.Type == "refresh")
             {
-                Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: Event in SSE endpoint does not have matching room code so we are skipping the event: {JsonSerializer.Serialize(eventObj)}");
+                _logger.LogInformation($"{DateTime.Now.ToString("G")}: Event in SSE endpoint does not have matching room code so we are skipping the event: {JsonSerializer.Serialize(eventObj)}");
                 continue;
             }
 
@@ -490,7 +496,7 @@ public class DatastarController : Controller
                 _ => ""
             };
 
-            Console.WriteLine($"Patching new refresh contents with length: {html.Length}");
+            _logger.LogInformation($"{DateTime.Now.ToString("G")}: Patching new refresh contents with length: {html.Length}");
             await sse.PatchElementsAsync(html);
         }
     }
@@ -499,7 +505,7 @@ public class DatastarController : Controller
     {
         if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
         {
-            Console.WriteLine($"Could not parse guid: {sessionKey}");
+            _logger.LogError($"{DateTime.Now.ToString("G")}: Could not parse guid: {sessionKey}");
             return "";
         }
 
@@ -515,7 +521,7 @@ public class DatastarController : Controller
 
         if (sessionKey == null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid))
         {
-            Console.WriteLine($"Could not parse guid: {sessionKey}");
+            _logger.LogError($"{DateTime.Now.ToString("G")}: Could not parse guid: {sessionKey}");
             return "";
         }
 
@@ -549,7 +555,8 @@ public class DatastarController : Controller
         if (message is null || !Guid.TryParse(sessionKey, out Guid sessionKeyGuid) || sessionKeyGuid != message.senderid)
         {
             // TODO Patch something to refresh the page
-            await sse.PatchSignalsAsync(new { });
+            _logger.LogError($"{DateTime.Now.ToString("G")}: Something went wrong with creating a message: {sessionKey}");
+            await sse.ExecuteScriptAsync("location.reload();");
             return;
         }
 
@@ -558,7 +565,8 @@ public class DatastarController : Controller
         {
             MessageContent = message.message,
             SenderSessionID = sessionKeyGuid,
-            ChatRoomKey = message.roomCode
+            ChatRoomKey = message.roomcode,
+            SendIPv4 = message.ipv4
         };
 
         _messagesContext.Add(model);
@@ -569,7 +577,7 @@ public class DatastarController : Controller
 
         await sse.PatchSignalsAsync(message with { message = string.Empty });
 
-        _broadcastQueue.Broadcast(JsonSerializer.Serialize(new MessageEvent("refresh", sessionKeyGuid, message.roomCode)));
+        _broadcastQueue.Broadcast(JsonSerializer.Serialize(new MessageEvent("refresh", sessionKeyGuid, message.roomcode)));
     }
 
     [HttpGet("StopConversation")]
@@ -598,13 +606,6 @@ public class DatastarController : Controller
                 queue.Add(JsonSerializer.Serialize(new MessageEvent("start", sessionKeyGuid, string.Empty)));
             }
         }
-    }
-
-    [HttpPost("AuthenticateConversation")]
-    [ValidateAntiForgeryToken]
-    public async Task AuthenticateConversation()
-    {
-        // Authentication to fetch chat window and allow user to start sending messages once we verify a code matches in this endpoint
     }
  
 #endregion

@@ -94,8 +94,9 @@
         <!-- Composer -->
         <div class="card-footer sticky-input">
             <div class="d-flex gap-2 align-items-start" id="chatForm">
-                <input data-bind-roomCode value="@Model.RoomCode" hidden />
+                <input data-bind-roomcode value="@Model.RoomCode" hidden />
                 <input data-bind-senderId value="@Model.MySenderId" hidden />
+                <input data-bind-ipv4 data-on-load="fetchIPv4(el)" hidden />
                 <textarea class="form-control" rows="2"
                           placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
                           required
@@ -110,5 +111,19 @@
     function resizeChat(element) {
         element.scrollTop = element.scrollHeight;
         console.log(element.scrollHeight);
+    }
+
+    function fetchIPv4(element) {
+        fetch("https://api.ipify.org/?format=json")
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.ip);
+            element.value = data.ip;
+            const changeEvent = new Event('change', { bubbles: true });
+            element.dispatchEvent(changeEvent)
+        })
+        .catch(error => {
+            console.error("Error fetching IP address:", error);
+        });
     }
 </script>
