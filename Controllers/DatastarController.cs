@@ -177,6 +177,12 @@ public class DatastarController : Controller
         // Fetch a session key stored within the browser session
         var sessionKey = HttpContext.Session.GetString("sortable");
 
+        if (sessionKey == null)
+        {
+            await sse.ExecuteScriptAsync("location.reload();");
+            return;
+        }
+
         _logger.LogInformation($"Grabbing queue for {sessionKey} in {nameof(SortableList)}");
         
         // Grab the queue to listen for incoming requests from
@@ -186,6 +192,11 @@ public class DatastarController : Controller
         {
             // Blocking "take" from queue
             var sortEvent = queue.Take(HttpContext.RequestAborted);
+
+            if (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return;
+            }
 
             // Now that a request has come through, fetch all details from the queue
             SortJson? sort = (SortJson?) JsonSerializer.Deserialize(sortEvent, typeof(SortJson));
@@ -472,6 +483,13 @@ public class DatastarController : Controller
         while (true)
         {
             var eventString = queue.Take(HttpContext.RequestAborted);
+
+            if (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                _logger.LogInformation($"{DateTime.Now.ToString("G")}: Request was cancelled for user {sessionKey}");
+                return;
+            }
+
             _logger.LogInformation($"{DateTime.Now.ToString("G")}: Event found: {eventString}");
 
             MessageEvent? eventObj = JsonSerializer.Deserialize<MessageEvent>(eventString);
