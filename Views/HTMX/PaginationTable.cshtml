@@ -9,7 +9,7 @@
   var firstElement = Model.Take(1).ToList()[0];
 }
 
-<div class="change" hx-trigger="updateCount from:body" hx-get="/PaginationCount">
+<div class="change" hx-trigger="updateCount from:body" hx-get="/HTMX/PaginationCount">
   @await Html.PartialAsync("_PageCount")
 </div>
 

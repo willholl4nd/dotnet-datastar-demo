@@ -28,9 +28,9 @@
 </style>
 
 <div class="text-center">
-  <form action="AddTodoItem" method="post">
+  <form asp-action="AddTodoItem" asp-controller="HTMX" method="post">
     <input type="text" name="ItemName" id="ItemName" value="">
-    <button type="submit" hx-post="/AddTodoItem">Submit</button>
+    <button type="submit" hx-post="/HTMX/AddTodoItem">Submit</button>
   </form>
 </div>
 
@@ -55,7 +55,7 @@
             <button 
               hx-swap="outerHTML swap:1s"
               hx-target="closest tr"
-              hx-delete="/DeleteTodoItem/@(item.Id)">
+              hx-delete="/HTMX/DeleteTodoItem/@(item.Id)">
               Delete
             </button>
           </td>

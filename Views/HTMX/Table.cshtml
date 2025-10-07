@@ -16,17 +16,17 @@
   <thead>
     <tr class="headers">
       <th
-        hx-get="/Demo/1?id=@(Model.Id)&size=@(size)"
+        hx-get="/HTMX/Demo/1?id=@(Model.Id)&size=@(size)"
         hx-target="#tablecontent">
         @Html.DisplayNameFor(model => model.Table[0].Id)
       </th>
       <th
-        hx-get="/Demo/2?id=@(Model.Id)&size=@(size)"
+        hx-get="/HTMX/Demo/2?id=@(Model.Id)&size=@(size)"
         hx-target="#tablecontent">
         @Html.DisplayNameFor(model => model.Table[0].RandInt)
       </th>
       <th
-        hx-get="/Demo/3?id=@(Model.Id)&size=@(size)"
+        hx-get="/HTMX/Demo/3?id=@(Model.Id)&size=@(size)"
         hx-target="#tablecontent">
         @Html.DisplayNameFor(model => model.Table[0].Name)
       </th>

@@ -10,8 +10,6 @@ using dotnet_html_sortable_table.Models;
 using dotnet_html_sortable_table.Data;
 using dotnet_html_sortable_table.Extensions;
 using dotnet_html_sortable_table.Services;
-using StarFederation.Datastar.ModelBinding;
-using System.Collections.Concurrent;
 
 namespace dotnet_html_sortable_table.Controllers;
 
@@ -67,7 +65,7 @@ public class DatastarController : Controller
         IEnumerable<Accounts> accounts;
         int count;
         if (filter != null && !filter.Equals("")) {
-            accounts = (from row in _context.Accounts
+            accounts = (from row in _context.Accounts.AsNoTracking()
             where row.FirstName.Contains(filter.search)
             select row).Take(filter.size).ToList();
             
@@ -75,7 +73,7 @@ public class DatastarController : Controller
             where row.FirstName.Contains(filter.search)
             select row).Count();
         } else {
-            accounts = _context.Accounts.Take(filter.size).ToList();
+            accounts = _context.Accounts.AsNoTracking().Take(filter.size).ToList();
             count = _context.Accounts.Count();
         }
 
@@ -95,9 +93,9 @@ public class DatastarController : Controller
     [HttpPost("Scroll")]
     public async Task Scrollv1([FromBody] Infinite signals, [FromServices] IDatastarService sse) 
     {
-        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+        DemoObject d = _context.TableContainer.AsNoTracking().First(m => m.Id == 1);
         var table = 
-            (from row in _context.Entries 
+            (from row in _context.Entries.AsNoTracking()
                 where row.DemoObjectId == d.Id && row.Id >= signals.offset 
                 select row)
             .OrderBy(m => m.Id)
@@ -150,9 +148,9 @@ public class DatastarController : Controller
     [HttpGet("Scroll")]
     public IActionResult Scroll() 
     {
-        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+        DemoObject d = _context.TableContainer.AsNoTracking().First(m => m.Id == 1);
         var table = 
-            (from row in _context.Entries 
+            (from row in _context.Entries.AsNoTracking()
                 where row.DemoObjectId == d.Id && row.Id >= 100 * 1
                 select row)
             .OrderBy(m => m.Id)
@@ -206,9 +204,9 @@ public class DatastarController : Controller
             if (sort != null) 
             {
                 // Sort the table according to the request
-                DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+                DemoObject d = _context.TableContainer.AsNoTracking().First(m => m.Id == 1);
                 List<DemoTable> table = 
-                    (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(sort.size).ToList();
+                    (from row in _context.Entries.AsNoTracking() where row.DemoObjectId == d.Id select row).Take(sort.size).ToList();
                 d.Table = table;
 
                 _logger.LogInformation("Changing the sort of the table");
@@ -275,9 +273,9 @@ public class DatastarController : Controller
         HttpContext.Session.SetString("sortable", Guid.NewGuid().ToString());
 
         int size = 100;
-        DemoObject d = _context.TableContainer.First(m => m.Id == 1);
+        DemoObject d = _context.TableContainer.AsNoTracking().First(m => m.Id == 1);
         List<DemoTable> table = 
-            (from row in _context.Entries where row.DemoObjectId == d.Id select row).Take(size).ToList();
+            (from row in _context.Entries.AsNoTracking() where row.DemoObjectId == d.Id select row).Take(size).ToList();
         d.Table = table;
 
         return View("Table", d);
@@ -328,7 +326,7 @@ public class DatastarController : Controller
         int id = 1;
 
         var table = 
-            (from row in _context.Entries 
+            (from row in _context.Entries.AsNoTracking()
                 where row.DemoObjectId == id && row.Id >= size * offset 
                 select row)
             .OrderBy(m => m.Id)
@@ -345,7 +343,7 @@ public class DatastarController : Controller
     public async Task PaginationTable([FromQuery] int offset, [FromBody] PaginationRecord pagination, [FromServices] IDatastarService sse) 
     {
         var table = 
-            (from row in _context.Entries 
+            (from row in _context.Entries.AsNoTracking()
                 where row.DemoObjectId == 1 && row.Id >= pagination.size * offset 
                 select row)
             .OrderBy(m => m.Id)
@@ -421,7 +419,7 @@ public class DatastarController : Controller
         var sessionKey = HttpContext.Session.GetString(ConversationCookieString);
         var isParsed = Guid.TryParse(sessionKey, out Guid currentSenderId);
         var models = 
-            _messagesContext.Messages
+            _messagesContext.Messages.AsNoTracking()
             .Where(m => m.ChatRoomKey == roomCode)
             .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == currentSenderId })
             .ToList();
@@ -544,7 +542,7 @@ public class DatastarController : Controller
         }
 
         var models =
-            _messagesContext.Messages
+            _messagesContext.Messages.AsNoTracking()
             .Where(m => m.ChatRoomKey == roomCode)
             .Select(m => new MessageViewModel() { DateCreated = m.DateCreated, MessageContent = m.MessageContent, SenderSessionID = m.SenderSessionID, IsMine = m.SenderSessionID == sessionKeyGuid })
             .ToList();

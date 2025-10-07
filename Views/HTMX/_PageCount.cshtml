@@ -20,14 +20,14 @@
 <div class="buttons" id="button-group">
   <button 
     class="button-text btn btn-primary" 
-    hx-get="/PaginationTable?size=@size&offset=@backwardoffset"
+    hx-get="/HTMX/PaginationTable?size=@size&offset=@backwardoffset"
     hx-target="#tablecontent"
     hx-push-url="true">
     Prev Page
   </button>
   <button 
     class="button-text btn btn-primary" 
-    hx-get="/PaginationTable?size=@size&offset=@forwardoffset"
+    hx-get="/HTMX/PaginationTable?size=@size&offset=@forwardoffset"
     hx-target="#tablecontent"
     hx-push-url="true">
     Next Page
